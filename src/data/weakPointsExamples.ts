@@ -264,6 +264,96 @@ class Button {
       ],
     },
   ],
+  html: [
+    {
+      id: 'html-semantic',
+      title: 'Semantic HTML vs "Div Soup"',
+      summary: 'Overusing <div> elements instead of semantic tags like <section>, <article>, and <nav>',
+      difficulty: 'beginner' as const,
+      whyLearnersStruggle: 'It is visually identical in the browser to use a <div> vs a <section>. Learners often do not see the immediate benefit of semantic tags because the "output" looks the same, leading to "div soup" - deeply nested structures of meaningless divs.',
+      commonMistakes: [
+        'Using <div onClick={...}> instead of <button>',
+        'Using <b> or <i> for styling instead of <strong> or <em> for meaning',
+        'Not using <main>, <header>, or <footer> regions',
+        'Using <div> for lists instead of <ul> or <ol>',
+      ],
+      detailedExplanation: `Semantic HTML means using correct HTML tags that convey the meaning of the content, not just its appearance.
+      
+Benefits of Semantic HTML:
+1. Accessibility: Screen readers rely on these tags to navigate the page
+2. SEO: Search engines understand your content structure better
+3. Maintainability: Code is easier to read and understand`,
+      realWorldExamples: [
+        {
+          title: 'The "Div Soup" Problem',
+          description: 'A button made of a div is not accessible by keyboard:',
+          code: `<!-- ❌ WRONG: Not accessible -->
+<div class="btn" onclick="submit()">Submit</div>`,
+        },
+        {
+          title: 'Semantic Solution',
+          description: 'Use the native button element for built-in accessibility:',
+          code: `<!-- ✅ CORRECT: Accessible by default -->
+<button class="btn" onclick="submit()">Submit</button>`,
+        }
+      ],
+      tips: [
+        'If it looks like a button and acts like a button, use <button>',
+        'Use <header> for page/section headers, not <div class="header">',
+        'Ask yourself: "What is this content?" (navigation? article? list?) and pick the matching tag'
+      ]
+    }
+  ],
+  css: [
+    {
+      id: 'css-box-model',
+      title: 'The Box Model & box-sizing',
+      summary: 'Confusion about how width, padding, and border add up to the total element size',
+      difficulty: 'beginner' as const,
+      whyLearnersStruggle: 'By default, CSS adds padding and border TO the width you specify. If you set width: 100px and padding: 20px, the actual width is 140px. This breaks layouts unexpectedly.',
+      commonMistakes: [
+        'Setting width: 100% and adding padding, creating horizontal scrollbars',
+        'Not resetting box-sizing globally',
+        'Confusing margin (outside) with padding (inside)'
+      ],
+      detailedExplanation: `Every element in CSS is a box. The Box Model consists of:
+1. Content: The actual text/image
+2. Padding: Space around content (inside border)
+3. Border: Wrapper around padding
+4. Margin: Space outside border
+
+The property 'box-sizing: border-box' changes how width is calculated so that padding and border are INCLUDED in the width.`,
+      realWorldExamples: [
+        {
+          title: 'Layout Breaking without border-box',
+          description: 'Adding padding makes the element wider than 100%, causing overflow:',
+          code: `/* ❌ WRONG: Causes horizontal scroll */
+.box {
+  width: 100%;
+  padding: 20px;
+}`
+        },
+        {
+          title: 'The Global Fix',
+          description: 'Apply this reset to all projects to make sizing intuitive:',
+          code: `/* ✅ CORRECT: box-sizing reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+.box {
+  width: 100%;
+  padding: 20px; /* Stays within 100% width! */
+}`
+        }
+      ],
+      tips: [
+        'Always add the box-sizing: border-box reset to your CSS files',
+        'Use Chrome DevTools "Computed" tab to visualize the box model',
+        'Remember: Margin pushes neighbors away; Padding grows the element (unless border-box is used)'
+      ]
+    }
+  ]
 };
 
 /**

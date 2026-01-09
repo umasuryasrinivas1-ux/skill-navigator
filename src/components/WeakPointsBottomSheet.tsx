@@ -10,6 +10,15 @@ export interface WeakPoint {
   summary: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   commonMistakes: string[];
+  detailedExplanation?: string;
+  realWorldExamples?: Array<{
+    title: string;
+    description: string;
+    code?: string;
+    illustration?: string;
+  }>;
+  whyLearnersStruggle?: string;
+  tips?: string[];
 }
 
 interface WeakPointsBottomSheetProps {
