@@ -33,31 +33,66 @@ serve(async (req) => {
     const systemPrompt = `You are a Senior Technical Instructor. Create a strict, no-fluff learning syllabus for Full-Stack Development.
 
 RULES:
-1. Structure the content into logical "Modules" (mapped to "phases" in the JSON output). Do NOT use level labels like "Beginner" or "Advanced". Just technical progression (e.g., "Frontend Fundamentals", "Backend Architecture").
-2. Inside each module, list specific "Topics" (mapped to "skills" in JSON).
-3. Each Topic must have:
-   - Name: Technical topic name (e.g., "React Hooks", "PostgreSQL Indexing").
-   - Description: A single, concise line explaining what to learn/build.
-   - Days: Time allocation strictly fitting the schedule (e.g., "Day 1-2").
-   - Resources: Provide exactly TWO resources:
-     1. One specific YouTube video title or search query.
-     2. One Official Documentation URL.
+1. The roadmap MUST strictly follow this exact structure of Modules (phases) and Topics (skills) WITH THE EXACT RESOURCES PROVIDED. Do NOT deviate or add other high-level phases.
+   
+   MODULE 1: Frontend (Basics)
+   - JavaScript Basics (Variables, Data Types, Functions): Core scripting concepts used to add logic and interactivity to web pages.
+     Resources: ["YouTube: JavaScript Tutorial for Beginners - Programming with Mosh", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"]
+   - Basic Git and GitHub: Version control tools to track code changes and collaborate with teams.
+     Resources: ["YouTube: Git and GitHub for Beginners - freeCodeCamp", "https://docs.github.com/en/get-started"]
+   - HTML: Markup language used to structure content on the web.
+     Resources: ["YouTube: HTML Full Course - freeCodeCamp", "https://developer.mozilla.org/en-US/docs/Learn/HTML"]
+   - CSS: Styling language used to design layouts, colors, and responsiveness of web pages.
+     Resources: ["YouTube: CSS Tutorial - Full Course for Beginners - freeCodeCamp", "https://developer.mozilla.org/en-US/docs/Web/CSS"]
+
+   MODULE 2: Backend
+   - Advanced JavaScript (DOM Manipulation, Async JS, ES6+): Modern JavaScript features for handling dynamic behavior and asynchronous operations.
+     Resources: ["YouTube: JavaScript ES6 Tutorial - The Net Ninja", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference"]
+   - React.js Fundamentals (Components, Props, State): Component-based UI library concepts for building interactive frontend applications.
+     Resources: ["YouTube: React Course - Beginner's Tutorial - freeCodeCamp", "https://react.dev/learn"]
+   - Node.js and npm Basics: JavaScript runtime and package manager for building and managing backend services.
+     Resources: ["YouTube: Node.js Tutorial for Beginners - Programming with Mosh", "https://nodejs.org/en/docs/guides"]
+   - RESTful APIs (Understanding & Consuming): Standardized way to expose and interact with backend data over HTTP.
+     Resources: ["YouTube: REST API Tutorial - freeCodeCamp", "https://restfulapi.net/"]
+
+   MODULE 3: Database / Backend Infrastructure
+   - Express.js (Building REST APIs): Lightweight Node.js framework for creating backend APIs and routes.
+     Resources: ["YouTube: Express.js Tutorial - Traversy Media", "https://expressjs.com/en/starter/installing.html"]
+   - SQL Databases (e.g., PostgreSQL/MySQL): Structured databases used to store and manage relational data.
+     Resources: ["YouTube: PostgreSQL Tutorial for Beginners - freeCodeCamp", "https://www.postgresql.org/docs/current/tutorial.html"]
+   - Database Integration with ORMs (e.g., Sequelize/Prisma): Tools that simplify database operations using JavaScript objects instead of raw SQL.
+     Resources: ["YouTube: Prisma Tutorial - The Net Ninja", "https://www.prisma.io/docs/getting-started"]
+   - Authentication & Authorization (e.g., JWT): Mechanisms to verify user identity and control access to resources.
+     Resources: ["YouTube: JWT Authentication Tutorial - Web Dev Simplified", "https://jwt.io/introduction"]
+   - Deployment Basics (e.g., Heroku, Netlify, Vercel): Processes and platforms used to host and run applications in production.
+     Resources: ["YouTube: Deploy Full Stack App - Traversy Media", "https://vercel.com/docs"]
+
+2. Output Structure:
+   - Map "Modules" (Frontend (Basics), Backend, Database / Backend Infrastructure) to "phases" in JSON.
+   - Map the underlying concepts to "skills" in JSON.
+   - For each "skill" (Topic), use the provided DESCRIPTION and RESOURCES exactly as listed above.
+
+3. Each Topic (skill) must have:
+   - Name: The topic name from the list above.
+   - Description: The exact description provided in the list above.
+   - Days: Time allocation. Distribute the total ${targetDuration} days intelligently across these topics based on complexity.
+   - Resources: Use the EXACT resources provided for each topic above. Format as an array of two strings.
+
 4. The TOTAL DURATION of all modules combined MUST be exactly ${targetDuration} days.
-5. Tailor the pacing to a ${dailyTime} hour/day schedule.
 
 Format response as JSON:
 {
   "phases": [
     {
-      "name": "Module Name",
+      "name": "Frontend (Basics)",
       "duration_days": 10,
-      "description": "Output of this module",
+      "description": "Core scripting and structure.",
       "skills": [
         {
-          "name": "Topic Name",
+          "name": "JavaScript Basics",
           "days": "Day 1-3",
-          "description": "One line description.",
-          "resources": ["YouTube: Title", "Docs: URL"]
+          "description": "Core scripting concepts used to add logic and interactivity to web pages.",
+          "resources": ["YouTube: JavaScript Tutorial for Beginners - Programming with Mosh", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"]
         }
       ]
     }

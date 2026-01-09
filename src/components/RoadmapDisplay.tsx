@@ -12,7 +12,11 @@ import {
   RotateCcw,
   ChevronDown,
   ChevronUp,
-  ExternalLink
+  ExternalLink,
+  Layout,
+  Server,
+  Database,
+  BookOpen
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
@@ -53,9 +57,20 @@ interface RoadmapDisplayProps {
   onNewRoadmap: () => void;
 }
 
-const getTopicColor = (index: number) => {
+const getTopicColor = (name: string, index: number) => {
+  if (name.includes('Frontend')) return 'phase-beginner';
+  if (name.includes('Backend')) return 'phase-intermediate';
+  if (name.includes('Database')) return 'phase-advanced';
+
   const colors = ['phase-beginner', 'phase-intermediate', 'phase-advanced', 'phase-market'];
   return colors[index % colors.length];
+};
+
+const getTopicIcon = (name: string) => {
+  if (name.includes('Frontend')) return <Layout className="w-6 h-6" />;
+  if (name.includes('Backend')) return <Server className="w-6 h-6" />;
+  if (name.includes('Database')) return <Database className="w-6 h-6" />;
+  return <BookOpen className="w-6 h-6" />;
 };
 
 export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: RoadmapDisplayProps) {
@@ -227,9 +242,24 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
       {/* Phases / Modules */}
       <div className="space-y-4">
         {roadmap.roadmap_data.phases.map((phase, phaseIndex) => {
+          // Visual override for legacy data ONLY if it doesn't match new strictly
+          let displayName = phase.name;
+          const isNewFormat =
+            phase.name === "Frontend (Basics)" ||
+            phase.name === "Backend" ||
+            phase.name.includes("Infrastructure");
+
+          if (!isNewFormat) {
+            if (phase.name.includes("Beginner") || phase.name.includes("Foundation")) displayName = "Frontend Development";
+            else if (phase.name.includes("Intermediate") || phase.name.includes("Core")) displayName = "Backend Development";
+            else if (phase.name.includes("Advanced") || phase.name.includes("Market")) displayName = "Database";
+          }
+
           const phaseProgress = getPhaseProgress(phase.name);
           const isExpanded = expandedPhases.includes(phase.name);
-          const styleClass = getTopicColor(phaseIndex);
+          // Use displayName for color/icon logic so it matches the new label
+          const styleClass = getTopicColor(displayName, phaseIndex);
+          const icon = getTopicIcon(displayName);
 
           return (
             <motion.div
@@ -246,9 +276,11 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                 className="w-full p-6 flex items-center justify-between hover:bg-secondary/20 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-2xl p-2 bg-secondary rounded-lg">📑</span>
+                  <span className="text-2xl p-2 bg-secondary rounded-lg text-foreground flex items-center justify-center">
+                    {icon}
+                  </span>
                   <div className="text-left">
-                    <h3 className="font-display font-semibold text-lg">{phase.name}</h3>
+                    <h3 className="font-display font-semibold text-lg">{displayName}</h3>
                     <p className="text-sm text-muted-foreground">
                       {phase.skills.length} subtopics • {phaseProgress}% complete
                     </p>
@@ -282,6 +314,11 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                       const isCompleted = skillProgress?.completed || false;
                       const timeDisplay = skill.days || skill.estimatedTime;
 
+                      // Visual override for specific skill names
+                      let displaySkillName = skill.name;
+                      if (skill.name.includes("HTML5")) displaySkillName = "HTML";
+                      if (skill.name.includes("CSS3")) displaySkillName = "CSS";
+
                       return (
                         <motion.div
                           key={skill.name}
@@ -298,7 +335,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2 mb-1">
                                 <h4 className="font-medium">
-                                  {skillIndex + 1}. {skill.name}
+                                  {skillIndex + 1}. {displaySkillName}
                                 </h4>
                                 <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
                                   <Clock className="w-4 h-4" />
@@ -311,20 +348,41 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
 
                               {/* Resources Section */}
                               {skill.resources && skill.resources.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-border/50">
-                                  {skill.resources.map((resource, i) => (
-                                    <a
-                                      key={i}
-                                      href={resource.startsWith('http') ? resource : `https://google.com/search?q=${encodeURIComponent(resource + ' ' + skill.name)}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-secondary/50 hover:bg-primary/20 hover:text-primary transition-colors text-muted-foreground"
-                                      onClick={(e) => e.stopPropagation()} // Prevent completing skill when clicking link
-                                    >
-                                      <ExternalLink className="w-3 h-3" />
-                                      {resource.length > 30 ? resource.substring(0, 30) + '...' : resource}
-                                    </a>
-                                  ))}
+                                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/50">
+                                  <span className="text-xs text-muted-foreground w-full mb-1">📚 Learning Resources:</span>
+                                  {skill.resources.map((resource, i) => {
+                                    const isYouTube = resource.toLowerCase().includes('youtube');
+                                    const isDoc = resource.startsWith('http');
+                                    let displayText = resource;
+                                    let href = resource;
+
+                                    if (isYouTube && !resource.startsWith('http')) {
+                                      // YouTube title - create search link
+                                      displayText = resource.replace('YouTube: ', '');
+                                      href = `https://www.youtube.com/results?search_query=${encodeURIComponent(displayText)}`;
+                                    } else if (!resource.startsWith('http')) {
+                                      // Other non-URL resource
+                                      href = `https://google.com/search?q=${encodeURIComponent(resource + ' ' + skill.name)}`;
+                                    }
+
+                                    return (
+                                      <a
+                                        key={i}
+                                        href={href}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors ${isYouTube
+                                          ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300'
+                                          : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300'
+                                          }`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        {isYouTube ? '▶️' : '📖'}
+                                        <span className="font-medium">{isYouTube ? 'Tutorial' : 'Docs'}</span>
+                                        <ExternalLink className="w-3 h-3" />
+                                      </a>
+                                    );
+                                  })}
                                 </div>
                               )}
 
