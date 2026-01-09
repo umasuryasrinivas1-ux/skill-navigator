@@ -25,60 +25,83 @@ serve(async (req) => {
 
     // Context Extraction
     const dailyTime = context?.daily_time || (weeklyHours / 7);
-    const targetDuration = context?.target_duration || 30; // 30, 60, 90, 180
+    const targetDuration = context?.target_duration || 30;
     const expLevel = context?.level || educationLevel;
     const expDetail = context?.background || "";
     const goal = context?.goal || "";
 
-    const systemPrompt = `You are a Senior Technical Instructor. Create a strict, no-fluff learning syllabus for Full-Stack Development.
+    const systemPrompt = `You are a Senior Technical Instructor. Create a strict, no-fluff learning syllabus for Full-Stack Development WITH QUIZ QUESTIONS FOR EACH TOPIC.
 
 RULES:
-1. The roadmap MUST strictly follow this exact structure of Modules (phases) and Topics (skills) WITH THE EXACT RESOURCES PROVIDED. Do NOT deviate or add other high-level phases.
+1. The roadmap MUST strictly follow this exact structure of Modules (phases) and Topics (skills) WITH THE EXACT RESOURCES PROVIDED AND QUIZ QUESTIONS. Do NOT deviate or add other high-level phases.
    
    MODULE 1: Frontend (Basics)
    - JavaScript Basics (Variables, Data Types, Functions): Core scripting concepts used to add logic and interactivity to web pages.
      Resources: ["YouTube: JavaScript Tutorial for Beginners - Programming with Mosh", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"]
+     Quiz: 3 multiple choice questions about JavaScript basics
    - Basic Git and GitHub: Version control tools to track code changes and collaborate with teams.
      Resources: ["YouTube: Git and GitHub for Beginners - freeCodeCamp", "https://docs.github.com/en/get-started"]
+     Quiz: 3 multiple choice questions about Git/GitHub
    - HTML: Markup language used to structure content on the web.
      Resources: ["YouTube: HTML Full Course - freeCodeCamp", "https://developer.mozilla.org/en-US/docs/Learn/HTML"]
+     Quiz: 3 multiple choice questions about HTML
    - CSS: Styling language used to design layouts, colors, and responsiveness of web pages.
      Resources: ["YouTube: CSS Tutorial - Full Course for Beginners - freeCodeCamp", "https://developer.mozilla.org/en-US/docs/Web/CSS"]
+     Quiz: 3 multiple choice questions about CSS
 
    MODULE 2: Backend
    - Advanced JavaScript (DOM Manipulation, Async JS, ES6+): Modern JavaScript features for handling dynamic behavior and asynchronous operations.
      Resources: ["YouTube: JavaScript ES6 Tutorial - The Net Ninja", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference"]
+     Quiz: 3 multiple choice questions about advanced JavaScript
    - React.js Fundamentals (Components, Props, State): Component-based UI library concepts for building interactive frontend applications.
      Resources: ["YouTube: React Course - Beginner's Tutorial - freeCodeCamp", "https://react.dev/learn"]
+     Quiz: 3 multiple choice questions about React.js
    - Node.js and npm Basics: JavaScript runtime and package manager for building and managing backend services.
      Resources: ["YouTube: Node.js Tutorial for Beginners - Programming with Mosh", "https://nodejs.org/en/docs/guides"]
+     Quiz: 3 multiple choice questions about Node.js
    - RESTful APIs (Understanding & Consuming): Standardized way to expose and interact with backend data over HTTP.
      Resources: ["YouTube: REST API Tutorial - freeCodeCamp", "https://restfulapi.net/"]
+     Quiz: 3 multiple choice questions about REST APIs
 
    MODULE 3: Database / Backend Infrastructure
    - Express.js (Building REST APIs): Lightweight Node.js framework for creating backend APIs and routes.
      Resources: ["YouTube: Express.js Tutorial - Traversy Media", "https://expressjs.com/en/starter/installing.html"]
+     Quiz: 3 multiple choice questions about Express.js
    - SQL Databases (e.g., PostgreSQL/MySQL): Structured databases used to store and manage relational data.
      Resources: ["YouTube: PostgreSQL Tutorial for Beginners - freeCodeCamp", "https://www.postgresql.org/docs/current/tutorial.html"]
+     Quiz: 3 multiple choice questions about SQL
    - Database Integration with ORMs (e.g., Sequelize/Prisma): Tools that simplify database operations using JavaScript objects instead of raw SQL.
      Resources: ["YouTube: Prisma Tutorial - The Net Ninja", "https://www.prisma.io/docs/getting-started"]
+     Quiz: 3 multiple choice questions about ORMs
    - Authentication & Authorization (e.g., JWT): Mechanisms to verify user identity and control access to resources.
      Resources: ["YouTube: JWT Authentication Tutorial - Web Dev Simplified", "https://jwt.io/introduction"]
+     Quiz: 3 multiple choice questions about JWT authentication
    - Deployment Basics (e.g., Heroku, Netlify, Vercel): Processes and platforms used to host and run applications in production.
      Resources: ["YouTube: Deploy Full Stack App - Traversy Media", "https://vercel.com/docs"]
+     Quiz: 3 multiple choice questions about deployment
 
 2. Output Structure:
    - Map "Modules" (Frontend (Basics), Backend, Database / Backend Infrastructure) to "phases" in JSON.
    - Map the underlying concepts to "skills" in JSON.
-   - For each "skill" (Topic), use the provided DESCRIPTION and RESOURCES exactly as listed above.
+   - For each "skill" (Topic), include the provided DESCRIPTION, RESOURCES, and QUIZ exactly as specified.
 
 3. Each Topic (skill) must have:
    - Name: The topic name from the list above.
    - Description: The exact description provided in the list above.
    - Days: Time allocation. Distribute the total ${targetDuration} days intelligently across these topics based on complexity.
    - Resources: Use the EXACT resources provided for each topic above. Format as an array of two strings.
+   - Quiz: An array of 3 quiz questions. Each question object has:
+     - question: The question text
+     - options: Array of 4 possible answers
+     - correctAnswer: Index (0-3) of the correct answer
 
 4. The TOTAL DURATION of all modules combined MUST be exactly ${targetDuration} days.
+
+5. Quiz Question Guidelines:
+   - Questions should test understanding, not memorization
+   - Include practical application questions
+   - Vary difficulty (1 easy, 1 medium, 1 challenging per topic)
+   - Make wrong answers plausible but clearly incorrect
 
 Format response as JSON:
 {
@@ -92,7 +115,24 @@ Format response as JSON:
           "name": "JavaScript Basics",
           "days": "Day 1-3",
           "description": "Core scripting concepts used to add logic and interactivity to web pages.",
-          "resources": ["YouTube: JavaScript Tutorial for Beginners - Programming with Mosh", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"]
+          "resources": ["YouTube: JavaScript Tutorial for Beginners - Programming with Mosh", "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide"],
+          "quiz": [
+            {
+              "question": "What is the correct way to declare a variable in JavaScript?",
+              "options": ["variable x = 5;", "let x = 5;", "x := 5;", "declare x = 5;"],
+              "correctAnswer": 1
+            },
+            {
+              "question": "Which data type is NOT primitive in JavaScript?",
+              "options": ["string", "number", "boolean", "object"],
+              "correctAnswer": 3
+            },
+            {
+              "question": "What does the 'return' keyword do in a function?",
+              "options": ["Prints output to console", "Exits the function and returns a value", "Creates a new variable", "Loops through an array"],
+              "correctAnswer": 1
+            }
+          ]
         }
       ]
     }
@@ -104,7 +144,7 @@ Format response as JSON:
 - Goal: ${goal}
 - Target Duration: ${targetDuration} days
 
-Generate the syllabus now. Keep it technical, direct, and actionable.`;
+Generate the syllabus now with quiz questions for each topic. Keep it technical, direct, and actionable.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
