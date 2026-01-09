@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { User } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -18,11 +18,15 @@ import {
   Layout,
   Terminal,
   BrainCircuit,
-  LineChart
+  LineChart,
+  Home,
+  BookOpen,
 } from 'lucide-react';
 import Onboarding from '@/components/Onboarding';
 import RoadmapDisplay from '@/components/RoadmapDisplay';
 import GeneralAssessment from '@/components/GeneralAssessment';
+import ProgressDashboard from '@/components/ProgressDashboard';
+import DashboardNavLink from '@/components/DashboardNavLink';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Profile {
@@ -33,6 +37,7 @@ interface Profile {
   existing_skills: string[];
   target_skill: string | null;
   weekly_hours: number;
+  weekly_goal_hours?: number;
   onboarding_completed: boolean;
 }
 
@@ -42,6 +47,8 @@ interface Roadmap {
   roadmap_data: any;
   created_at: string;
 }
+
+type DashboardView = 'home' | 'roadmap';
 
 const CAREERS = [
   { id: 'Full-Stack Development', icon: Globe, label: 'Full-Stack Development', available: true },
@@ -62,6 +69,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<DashboardView>('home');
 
   // Derived State
   const generalDone = profile?.existing_skills?.some(s => s.startsWith('General_Q4')) ?? false;
@@ -141,16 +149,37 @@ export default function Dashboard() {
     );
   }
 
+  const showFullDashboard = generalDone && careerSelected && profile?.onboarding_completed && roadmap;
+
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      {/* Heavy Header only when not in initial flows */}
       <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <span className="font-display font-bold text-xl">SkillPath</span>
             </div>
-            <span className="font-display font-bold text-xl">SkillPath</span>
+            
+            {/* Navigation - only show when roadmap exists */}
+            {showFullDashboard && (
+              <nav className="hidden md:flex items-center gap-1">
+                <DashboardNavLink
+                  icon={Home}
+                  label="Home"
+                  active={currentView === 'home'}
+                  onClick={() => setCurrentView('home')}
+                />
+                <DashboardNavLink
+                  icon={BookOpen}
+                  label="Roadmap"
+                  active={currentView === 'roadmap'}
+                  onClick={() => setCurrentView('roadmap')}
+                />
+              </nav>
+            )}
           </div>
 
           <div className="flex items-center gap-4">
@@ -169,7 +198,6 @@ export default function Dashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
-
           {/* Phase 1: General Assessment */}
           {!generalDone && (
             <motion.div key="general" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -184,7 +212,6 @@ export default function Dashboard() {
                 <h1 className="text-4xl font-bold font-display">Choose your path</h1>
                 <p className="text-muted-foreground text-lg">Select a career track to begin your personalized journey</p>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {CAREERS.map((career) => (
                   <div
@@ -193,14 +220,12 @@ export default function Dashboard() {
                     className={`relative p-6 rounded-2xl border transition-all duration-300 ${career.available
                       ? 'bg-card border-border hover:border-primary/50 hover:shadow-lg cursor-pointer group'
                       : 'bg-secondary/20 border-border/50 opacity-60 cursor-not-allowed'
-                      }`}
+                    }`}
                   >
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${career.available ? 'bg-primary/10 text-primary group-hover:scale-110 transition-transform' : 'bg-secondary text-muted-foreground'
-                      }`}>
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${career.available ? 'bg-primary/10 text-primary group-hover:scale-110 transition-transform' : 'bg-secondary text-muted-foreground'}`}>
                       <career.icon className="w-6 h-6" />
                     </div>
                     <h3 className="text-xl font-bold mb-2">{career.label}</h3>
-
                     {!career.available && (
                       <span className="inline-block px-2 py-1 rounded-full bg-secondary text-xs font-medium text-muted-foreground">
                         Coming Soon
@@ -212,7 +237,7 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* Phase 3: Deep Personalization (Specific Onboarding) */}
+          {/* Phase 3: Onboarding */}
           {generalDone && careerSelected && !profile?.onboarding_completed && (
             <motion.div key="specific" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <Onboarding userId={user!.id} onComplete={fetchData} />
@@ -224,8 +249,20 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* Phase 4: Roadmap */}
-          {generalDone && careerSelected && profile?.onboarding_completed && roadmap && (
+          {/* Phase 4: Home Dashboard */}
+          {showFullDashboard && currentView === 'home' && (
+            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <ProgressDashboard
+                userId={user!.id}
+                profile={profile}
+                roadmap={roadmap}
+                onViewRoadmap={() => setCurrentView('roadmap')}
+              />
+            </motion.div>
+          )}
+
+          {/* Phase 4: Roadmap View */}
+          {showFullDashboard && currentView === 'roadmap' && (
             <motion.div key="roadmap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <RoadmapDisplay
                 roadmap={roadmap}
@@ -238,11 +275,18 @@ export default function Dashboard() {
             </motion.div>
           )}
 
-          {/* Loading / Generate State fallback */}
+          {/* Loading state */}
           {generalDone && careerSelected && profile?.onboarding_completed && !roadmap && (
             <div className="flex flex-col items-center justify-center h-[50vh]">
               <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
               <p className="text-muted-foreground">Retrieving your plan...</p>
+            </div>
+          )}
+        </AnimatePresence>
+      </main>
+    </div>
+  );
+}
             </div>
           )}
 

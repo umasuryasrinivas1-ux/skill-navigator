@@ -83,7 +83,12 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
   const [progress, setProgress] = useState<SkillProgress[]>([]);
   const [expandedPhases, setExpandedPhases] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSkill, setSelectedSkill] = useState<{ skill: Skill; phase: string } | null>(null);
+  const [selectedSkill, setSelectedSkill] = useState<{ 
+    skill: Skill; 
+    phase: string; 
+    phaseIndex: number; 
+    skillIndex: number 
+  } | null>(null);
 
   useEffect(() => {
     if (roadmap?.roadmap_data?.phases?.length > 0) {
@@ -200,8 +205,8 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
     }
   };
 
-  const handleSkillClick = (skill: Skill, phase: string) => {
-    setSelectedSkill({ skill, phase });
+  const handleSkillClick = (skill: Skill, phase: string, phaseIndex: number, skillIndex: number) => {
+    setSelectedSkill({ skill, phase, phaseIndex, skillIndex });
   };
 
   const handleSkillComplete = () => {
@@ -213,6 +218,41 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
 
   const isSkillCompleted = (skillName: string, phase: string) => {
     return progress.find(p => p.skill_name === skillName && p.phase === phase)?.completed || false;
+  };
+
+  // Check if a skill is locked (previous skill not completed)
+  const isSkillLocked = (phaseIndex: number, skillIndex: number) => {
+    // First skill of first phase is never locked
+    if (phaseIndex === 0 && skillIndex === 0) return false;
+
+    const phases = roadmap.roadmap_data.phases;
+
+    if (skillIndex === 0) {
+      // First skill of a phase - check if last skill of previous phase is completed
+      const prevPhase = phases[phaseIndex - 1];
+      const lastSkillOfPrevPhase = prevPhase.skills[prevPhase.skills.length - 1];
+      return !isSkillCompleted(lastSkillOfPrevPhase.name, prevPhase.name);
+    } else {
+      // Check if previous skill in same phase is completed
+      const currentPhase = phases[phaseIndex];
+      const prevSkill = currentPhase.skills[skillIndex - 1];
+      return !isSkillCompleted(prevSkill.name, currentPhase.name);
+    }
+  };
+
+  const getLockedMessage = (phaseIndex: number, skillIndex: number) => {
+    const phases = roadmap.roadmap_data.phases;
+
+    if (skillIndex === 0 && phaseIndex > 0) {
+      const prevPhase = phases[phaseIndex - 1];
+      const lastSkill = prevPhase.skills[prevPhase.skills.length - 1];
+      return `Complete "${lastSkill.name}" first to unlock this skill.`;
+    } else if (skillIndex > 0) {
+      const currentPhase = phases[phaseIndex];
+      const prevSkill = currentPhase.skills[skillIndex - 1];
+      return `Complete "${prevSkill.name}" first to unlock this skill.`;
+    }
+    return '';
   };
 
   return (
@@ -329,6 +369,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                   <div className="p-4 space-y-3">
                     {phase.skills.map((skill, skillIndex) => {
                       const isCompleted = isSkillCompleted(skill.name, phase.name);
+                      const isLocked = isSkillLocked(phaseIndex, skillIndex);
                       const timeDisplay = skill.days || skill.estimatedTime;
                       const hasQuiz = skill.quiz && skill.quiz.length > 0;
 
@@ -342,10 +383,12 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: skillIndex * 0.05 }}
-                          onClick={() => handleSkillClick(skill, phase.name)}
+                          onClick={() => handleSkillClick(skill, phase.name, phaseIndex, skillIndex)}
                           className={`p-4 rounded-lg border transition-all cursor-pointer ${
                             isCompleted
                               ? 'bg-success/10 border-success/30'
+                              : isLocked
+                              ? 'bg-secondary/20 border-border/50 opacity-60'
                               : 'bg-secondary/30 border-border hover:border-primary/30 hover:bg-secondary/50'
                           }`}
                         >
@@ -359,9 +402,14 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                                   {isCompleted && (
                                     <CheckCircle2 className="w-4 h-4 text-success" />
                                   )}
-                                  {!isCompleted && hasQuiz && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                                  {isLocked && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary text-muted-foreground text-xs rounded-full">
                                       <Lock className="w-3 h-3" />
+                                      Locked
+                                    </span>
+                                  )}
+                                  {!isCompleted && !isLocked && hasQuiz && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
                                       Quiz
                                     </span>
                                   )}
@@ -375,7 +423,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                                 {skill.description}
                               </p>
                               <p className="text-xs text-primary mt-2">
-                                Click to view resources & take quiz →
+                                {isLocked ? 'Complete previous skill to unlock' : 'Click to view resources & take quiz →'}
                               </p>
                             </div>
                           </div>
@@ -417,6 +465,8 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         onComplete={handleSkillComplete}
         userId={userId}
         roadmapId={roadmap.id}
+        isLocked={selectedSkill ? isSkillLocked(selectedSkill.phaseIndex, selectedSkill.skillIndex) : false}
+        lockedMessage={selectedSkill ? getLockedMessage(selectedSkill.phaseIndex, selectedSkill.skillIndex) : ''}
       />
     </div>
   );

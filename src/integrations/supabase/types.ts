@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      learning_activity: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          minutes_spent: number
+          skills_completed: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          minutes_spent?: number
+          skills_completed?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          minutes_spent?: number
+          skills_completed?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -25,6 +52,7 @@ export type Database = {
           onboarding_completed: boolean | null
           target_skill: string | null
           updated_at: string | null
+          weekly_goal_hours: number | null
           weekly_hours: number | null
         }
         Insert: {
@@ -37,6 +65,7 @@ export type Database = {
           onboarding_completed?: boolean | null
           target_skill?: string | null
           updated_at?: string | null
+          weekly_goal_hours?: number | null
           weekly_hours?: number | null
         }
         Update: {
@@ -49,9 +78,51 @@ export type Database = {
           onboarding_completed?: boolean | null
           target_skill?: string | null
           updated_at?: string | null
+          weekly_goal_hours?: number | null
           weekly_hours?: number | null
         }
         Relationships: []
+      }
+      skill_notes: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          phase: string
+          roadmap_id: string
+          skill_name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          id?: string
+          phase: string
+          roadmap_id: string
+          skill_name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          phase?: string
+          roadmap_id?: string
+          skill_name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_notes_roadmap_id_fkey"
+            columns: ["roadmap_id"]
+            isOneToOne: false
+            referencedRelation: "skill_roadmaps"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skill_progress: {
         Row: {
