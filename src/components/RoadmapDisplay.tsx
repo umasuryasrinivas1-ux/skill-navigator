@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -17,7 +18,6 @@ import {
   Lock,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
-import SkillDetailModal from './SkillDetailModal';
 import RoadmapExportShare from './RoadmapExportShare';
 
 interface QuizQuestion {
@@ -83,12 +83,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
   const [progress, setProgress] = useState<SkillProgress[]>([]);
   const [expandedPhases, setExpandedPhases] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSkill, setSelectedSkill] = useState<{ 
-    skill: Skill; 
-    phase: string; 
-    phaseIndex: number; 
-    skillIndex: number 
-  } | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (roadmap?.roadmap_data?.phases?.length > 0) {
@@ -206,14 +201,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
   };
 
   const handleSkillClick = (skill: Skill, phase: string, phaseIndex: number, skillIndex: number) => {
-    setSelectedSkill({ skill, phase, phaseIndex, skillIndex });
-  };
-
-  const handleSkillComplete = () => {
-    if (selectedSkill) {
-      markSkillComplete(selectedSkill.skill.name, selectedSkill.phase);
-      setSelectedSkill(null);
-    }
+    navigate(`/roadmap/${roadmap.id}/phase/${encodeURIComponent(phase)}/skill/${encodeURIComponent(skill.name)}`);
   };
 
   const isSkillCompleted = (skillName: string, phase: string) => {
@@ -273,7 +261,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         <p className="text-muted-foreground mb-6">
           Click on any topic to view resources and take the quiz
         </p>
-        
+
         {/* Export & Share */}
         <div className="flex justify-center">
           <RoadmapExportShare
@@ -384,13 +372,12 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: skillIndex * 0.05 }}
                           onClick={() => handleSkillClick(skill, phase.name, phaseIndex, skillIndex)}
-                          className={`p-4 rounded-lg border transition-all cursor-pointer ${
-                            isCompleted
-                              ? 'bg-success/10 border-success/30'
-                              : isLocked
+                          className={`p-4 rounded-lg border transition-all cursor-pointer ${isCompleted
+                            ? 'bg-success/10 border-success/30'
+                            : isLocked
                               ? 'bg-secondary/20 border-border/50 opacity-60'
                               : 'bg-secondary/30 border-border hover:border-primary/30 hover:bg-secondary/50'
-                          }`}
+                            }`}
                         >
                           <div className="flex items-start gap-4">
                             <div className="flex-1 min-w-0">
@@ -455,19 +442,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         </Button>
       </motion.div>
 
-      {/* Skill Detail Modal */}
-      <SkillDetailModal
-        skill={selectedSkill?.skill || null}
-        phase={selectedSkill?.phase || ''}
-        isOpen={!!selectedSkill}
-        onClose={() => setSelectedSkill(null)}
-        isCompleted={selectedSkill ? isSkillCompleted(selectedSkill.skill.name, selectedSkill.phase) : false}
-        onComplete={handleSkillComplete}
-        userId={userId}
-        roadmapId={roadmap.id}
-        isLocked={selectedSkill ? isSkillLocked(selectedSkill.phaseIndex, selectedSkill.skillIndex) : false}
-        lockedMessage={selectedSkill ? getLockedMessage(selectedSkill.phaseIndex, selectedSkill.skillIndex) : ''}
-      />
+
     </div>
   );
 }

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import SkillNotes from './SkillNotes';
+import WeakPointsBottomSheet, { WeakPoint } from './WeakPointsBottomSheet';
 
 interface QuizQuestion {
   question: string;
@@ -40,6 +41,7 @@ interface Skill {
   days?: string;
   resources?: string[];
   quiz?: QuizQuestion[];
+  weakPoints?: WeakPoint[];
 }
 
 interface SkillDetailModalProps {
@@ -343,6 +345,15 @@ export default function SkillDetailModal({
           )}
         </div>
       </DialogContent>
+
+      {/* Weak Points Bottom Sheet */}
+      {skill.weakPoints && skill.weakPoints.length > 0 && (
+        <WeakPointsBottomSheet
+          skillName={skill.name}
+          phase={phase}
+          weakPoints={skill.weakPoints}
+        />
+      )}
     </Dialog>
   );
 }
