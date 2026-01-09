@@ -7,26 +7,33 @@ import {
   Target,
   Clock,
   CheckCircle2,
-  Circle,
-  Sparkles,
-  RotateCcw,
   ChevronDown,
   ChevronUp,
-  ExternalLink,
   Layout,
   Server,
   Database,
-  BookOpen
+  BookOpen,
+  RotateCcw,
+  Lock,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import SkillDetailModal from './SkillDetailModal';
+import RoadmapExportShare from './RoadmapExportShare';
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctAnswer: number;
+}
 
 interface Skill {
   name: string;
-  estimatedTime: string; // Or 'days' from the new logic, but sticking to existing for compatibility
-  days?: string; // New field from new logic
+  estimatedTime?: string;
+  days?: string;
   description: string;
-  order: number;
+  order?: number;
   resources?: string[];
+  quiz?: QuizQuestion[];
 }
 
 interface Phase {
@@ -61,7 +68,6 @@ const getTopicColor = (name: string, index: number) => {
   if (name.includes('Frontend')) return 'phase-beginner';
   if (name.includes('Backend')) return 'phase-intermediate';
   if (name.includes('Database')) return 'phase-advanced';
-
   const colors = ['phase-beginner', 'phase-intermediate', 'phase-advanced', 'phase-market'];
   return colors[index % colors.length];
 };
@@ -75,12 +81,12 @@ const getTopicIcon = (name: string) => {
 
 export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: RoadmapDisplayProps) {
   const [progress, setProgress] = useState<SkillProgress[]>([]);
-  const [expandedPhases, setExpandedPhases] = useState<string[]>([]); // Start collapsed
+  const [expandedPhases, setExpandedPhases] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSkill, setSelectedSkill] = useState<{ skill: Skill; phase: string } | null>(null);
 
   useEffect(() => {
     if (roadmap?.roadmap_data?.phases?.length > 0) {
-      // Expand the first phase by default
       setExpandedPhases([roadmap.roadmap_data.phases[0].name]);
     }
     fetchProgress();
@@ -95,7 +101,6 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
 
       if (error) throw error;
 
-      // Initialize progress for all skills if not exists
       const existingSkills = new Set(data?.map(p => `${p.phase}-${p.skill_name}`));
       const missingProgress: any[] = [];
 
@@ -132,35 +137,29 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
     }
   };
 
-  const toggleSkillCompletion = async (skillName: string, phase: string) => {
+  const markSkillComplete = async (skillName: string, phase: string) => {
     const existingProgress = progress.find(
       p => p.skill_name === skillName && p.phase === phase
     );
 
     if (!existingProgress) return;
 
-    const newCompleted = !existingProgress.completed;
-
     try {
       const { error } = await supabase
         .from('skill_progress')
         .update({
-          completed: newCompleted,
-          completed_at: newCompleted ? new Date().toISOString() : null
+          completed: true,
+          completed_at: new Date().toISOString()
         })
         .eq('id', existingProgress.id);
 
       if (error) throw error;
 
       setProgress(progress.map(p =>
-        p.id === existingProgress.id
-          ? { ...p, completed: newCompleted }
-          : p
+        p.id === existingProgress.id ? { ...p, completed: true } : p
       ));
 
-      if (newCompleted) {
-        toast.success(`${skillName} completed! 🎉`);
-      }
+      toast.success(`${skillName} completed! 🎉`);
     } catch (error) {
       console.error('Error updating progress:', error);
       toast.error('Failed to update progress');
@@ -194,12 +193,26 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         .from('profiles')
         .update({ onboarding_completed: false })
         .eq('id', userId);
-
       onNewRoadmap();
     } catch (error) {
       console.error('Error resetting profile:', error);
       toast.error('Failed to start new roadmap');
     }
+  };
+
+  const handleSkillClick = (skill: Skill, phase: string) => {
+    setSelectedSkill({ skill, phase });
+  };
+
+  const handleSkillComplete = () => {
+    if (selectedSkill) {
+      markSkillComplete(selectedSkill.skill.name, selectedSkill.phase);
+      setSelectedSkill(null);
+    }
+  };
+
+  const isSkillCompleted = (skillName: string, phase: string) => {
+    return progress.find(p => p.skill_name === skillName && p.phase === phase)?.completed || false;
   };
 
   return (
@@ -217,9 +230,18 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
           {roadmap.target_skill}
         </h1>
-        <p className="text-muted-foreground">
-          Follow this structured path to master the topics
+        <p className="text-muted-foreground mb-6">
+          Click on any topic to view resources and take the quiz
         </p>
+        
+        {/* Export & Share */}
+        <div className="flex justify-center">
+          <RoadmapExportShare
+            roadmapId={roadmap.id}
+            targetSkill={roadmap.target_skill}
+            roadmapData={roadmap.roadmap_data}
+          />
+        </div>
       </motion.div>
 
       {/* Overall Progress */}
@@ -240,9 +262,8 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
       </motion.div>
 
       {/* Phases / Modules */}
-      <div className="space-y-4">
+      <div className="space-y-4" id="roadmap-content">
         {roadmap.roadmap_data.phases.map((phase, phaseIndex) => {
-          // Visual override for legacy data ONLY if it doesn't match new strictly
           let displayName = phase.name;
           const isNewFormat =
             phase.name === "Frontend (Basics)" ||
@@ -257,7 +278,6 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
 
           const phaseProgress = getPhaseProgress(phase.name);
           const isExpanded = expandedPhases.includes(phase.name);
-          // Use displayName for color/icon logic so it matches the new label
           const styleClass = getTopicColor(displayName, phaseIndex);
           const icon = getTopicIcon(displayName);
 
@@ -308,13 +328,10 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                 >
                   <div className="p-4 space-y-3">
                     {phase.skills.map((skill, skillIndex) => {
-                      const skillProgress = progress.find(
-                        p => p.skill_name === skill.name && p.phase === phase.name
-                      );
-                      const isCompleted = skillProgress?.completed || false;
+                      const isCompleted = isSkillCompleted(skill.name, phase.name);
                       const timeDisplay = skill.days || skill.estimatedTime;
+                      const hasQuiz = skill.quiz && skill.quiz.length > 0;
 
-                      // Visual override for specific skill names
                       let displaySkillName = skill.name;
                       if (skill.name.includes("HTML5")) displaySkillName = "HTML";
                       if (skill.name.includes("CSS3")) displaySkillName = "CSS";
@@ -325,67 +342,41 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: skillIndex * 0.05 }}
-                          className={`p-4 rounded-lg border transition-all ${isCompleted
-                            ? 'bg-success/10 border-success/30'
-                            : 'bg-secondary/30 border-border hover:border-primary/30'
-                            }`}
+                          onClick={() => handleSkillClick(skill, phase.name)}
+                          className={`p-4 rounded-lg border transition-all cursor-pointer ${
+                            isCompleted
+                              ? 'bg-success/10 border-success/30'
+                              : 'bg-secondary/30 border-border hover:border-primary/30 hover:bg-secondary/50'
+                          }`}
                         >
                           <div className="flex items-start gap-4">
-                            {/* Checkboxes removed as per user request */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2 mb-1">
-                                <h4 className="font-medium">
-                                  {skillIndex + 1}. {displaySkillName}
-                                </h4>
+                                <div className="flex items-center gap-2">
+                                  <h4 className="font-medium">
+                                    {skillIndex + 1}. {displaySkillName}
+                                  </h4>
+                                  {isCompleted && (
+                                    <CheckCircle2 className="w-4 h-4 text-success" />
+                                  )}
+                                  {!isCompleted && hasQuiz && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                                      <Lock className="w-3 h-3" />
+                                      Quiz
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
                                   <Clock className="w-4 h-4" />
                                   {timeDisplay}
                                 </div>
                               </div>
-                              <p className="text-sm text-muted-foreground mb-3">
+                              <p className="text-sm text-muted-foreground line-clamp-2">
                                 {skill.description}
                               </p>
-
-                              {/* Resources Section */}
-                              {skill.resources && skill.resources.length > 0 && (
-                                <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-border/50">
-                                  <span className="text-xs text-muted-foreground w-full mb-1">📚 Learning Resources:</span>
-                                  {skill.resources.map((resource, i) => {
-                                    const isYouTube = resource.toLowerCase().includes('youtube');
-                                    const isDoc = resource.startsWith('http');
-                                    let displayText = resource;
-                                    let href = resource;
-
-                                    if (isYouTube && !resource.startsWith('http')) {
-                                      // YouTube title - create search link
-                                      displayText = resource.replace('YouTube: ', '');
-                                      href = `https://www.youtube.com/results?search_query=${encodeURIComponent(displayText)}`;
-                                    } else if (!resource.startsWith('http')) {
-                                      // Other non-URL resource
-                                      href = `https://google.com/search?q=${encodeURIComponent(resource + ' ' + skill.name)}`;
-                                    }
-
-                                    return (
-                                      <a
-                                        key={i}
-                                        href={href}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors ${isYouTube
-                                          ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300'
-                                          : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300'
-                                          }`}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        {isYouTube ? '▶️' : '📖'}
-                                        <span className="font-medium">{isYouTube ? 'Tutorial' : 'Docs'}</span>
-                                        <ExternalLink className="w-3 h-3" />
-                                      </a>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
+                              <p className="text-xs text-primary mt-2">
+                                Click to view resources & take quiz →
+                              </p>
                             </div>
                           </div>
                         </motion.div>
@@ -415,6 +406,18 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
           Create New Roadmap
         </Button>
       </motion.div>
+
+      {/* Skill Detail Modal */}
+      <SkillDetailModal
+        skill={selectedSkill?.skill || null}
+        phase={selectedSkill?.phase || ''}
+        isOpen={!!selectedSkill}
+        onClose={() => setSelectedSkill(null)}
+        isCompleted={selectedSkill ? isSkillCompleted(selectedSkill.skill.name, selectedSkill.phase) : false}
+        onComplete={handleSkillComplete}
+        userId={userId}
+        roadmapId={roadmap.id}
+      />
     </div>
   );
 }
