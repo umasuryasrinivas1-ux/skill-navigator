@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { userId, educationLevel, existingSkills, targetSkill, weeklyHours } = await req.json();
+    const { userId, educationLevel, existingSkills, targetSkill, weeklyHours, context } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
@@ -23,49 +23,53 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const systemPrompt = `You are an expert career and learning advisor. Generate a structured skill learning roadmap based on the user's profile.
+    // Context Extraction
+    const dailyTime = context?.daily_time || (weeklyHours / 7);
+    const targetDuration = context?.target_duration || 30; // 30, 60, 90, 180
+    const expLevel = context?.level || educationLevel;
+    const expDetail = context?.background || "";
+    const goal = context?.goal || "";
 
-The roadmap MUST be returned as a JSON object with the following structure:
+    const systemPrompt = `You are a Senior Technical Instructor. Create a strict, no-fluff learning syllabus for Full-Stack Development.
+
+RULES:
+1. Structure the content into logical "Modules" (mapped to "phases" in the JSON output). Do NOT use level labels like "Beginner" or "Advanced". Just technical progression (e.g., "Frontend Fundamentals", "Backend Architecture").
+2. Inside each module, list specific "Topics" (mapped to "skills" in JSON).
+3. Each Topic must have:
+   - Name: Technical topic name (e.g., "React Hooks", "PostgreSQL Indexing").
+   - Description: A single, concise line explaining what to learn/build.
+   - Days: Time allocation strictly fitting the schedule (e.g., "Day 1-2").
+   - Resources: Provide exactly TWO resources:
+     1. One specific YouTube video title or search query.
+     2. One Official Documentation URL.
+4. The TOTAL DURATION of all modules combined MUST be exactly ${targetDuration} days.
+5. Tailor the pacing to a ${dailyTime} hour/day schedule.
+
+Format response as JSON:
 {
   "phases": [
     {
-      "name": "Beginner / Foundation",
+      "name": "Module Name",
+      "duration_days": 10,
+      "description": "Output of this module",
       "skills": [
         {
-          "name": "Skill Name",
-          "estimatedTime": "2 weeks",
-          "description": "Brief explanation of why this skill matters and how it connects to the goal",
-          "order": 1
+          "name": "Topic Name",
+          "days": "Day 1-3",
+          "description": "One line description.",
+          "resources": ["YouTube: Title", "Docs: URL"]
         }
       ]
-    },
-    {
-      "name": "Intermediate",
-      "skills": [...]
-    },
-    {
-      "name": "Advanced",
-      "skills": [...]
     }
   ]
-}
+}`;
 
-Guidelines:
-- Each phase should have 3-5 skills
-- Skills should be in logical learning order
-- Estimated time should be realistic based on weekly hours available
-- Descriptions should be 1-2 sentences explaining relevance
-- Consider existing skills to avoid redundancy
-- Make the path practical and actionable`;
+    const userPrompt = `User Profile:
+- Current Experience: ${expLevel} (${expDetail})
+- Goal: ${goal}
+- Target Duration: ${targetDuration} days
 
-    const userPrompt = `Create a personalized learning roadmap for:
-
-Target Role/Skill: ${targetSkill}
-Current Education: ${educationLevel}
-Existing Skills: ${existingSkills.length > 0 ? existingSkills.join(", ") : "None specified"}
-Weekly Learning Time: ${weeklyHours} hours
-
-Generate a comprehensive roadmap with skills ordered from foundational to advanced. Ensure time estimates are realistic for ${weeklyHours} hours per week of study.`;
+Generate the syllabus now. Keep it technical, direct, and actionable.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -84,18 +88,6 @@ Generate a comprehensive roadmap with skills ordered from foundational to advanc
     });
 
     if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add more credits." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
       throw new Error("Failed to generate roadmap");
@@ -104,21 +96,13 @@ Generate a comprehensive roadmap with skills ordered from foundational to advanc
     const aiResponse = await response.json();
     const content = aiResponse.choices?.[0]?.message?.content;
 
-    if (!content) {
-      throw new Error("No content in AI response");
-    }
+    if (!content) throw new Error("No content in AI response");
 
     let roadmapData;
     try {
       roadmapData = JSON.parse(content);
     } catch {
-      console.error("Failed to parse AI response:", content);
       throw new Error("Invalid roadmap format");
-    }
-
-    // Validate the structure
-    if (!roadmapData.phases || !Array.isArray(roadmapData.phases)) {
-      throw new Error("Invalid roadmap structure");
     }
 
     // Save roadmap to database

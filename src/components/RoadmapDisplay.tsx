@@ -3,28 +3,33 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
-import { 
-  Target, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Target,
+  Clock,
+  CheckCircle2,
   Circle,
   Sparkles,
   RotateCcw,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  ExternalLink
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 interface Skill {
   name: string;
-  estimatedTime: string;
+  estimatedTime: string; // Or 'days' from the new logic, but sticking to existing for compatibility
+  days?: string; // New field from new logic
   description: string;
   order: number;
+  resources?: string[];
 }
 
 interface Phase {
   name: string;
   skills: Skill[];
+  duration_days?: number;
+  description?: string;
 }
 
 interface RoadmapData {
@@ -48,24 +53,21 @@ interface RoadmapDisplayProps {
   onNewRoadmap: () => void;
 }
 
-const phaseStyles = {
-  'Beginner / Foundation': 'phase-beginner',
-  'Intermediate': 'phase-intermediate',
-  'Advanced': 'phase-advanced',
-};
-
-const phaseIcons = {
-  'Beginner / Foundation': '🌱',
-  'Intermediate': '🚀',
-  'Advanced': '⭐',
+const getTopicColor = (index: number) => {
+  const colors = ['phase-beginner', 'phase-intermediate', 'phase-advanced', 'phase-market'];
+  return colors[index % colors.length];
 };
 
 export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: RoadmapDisplayProps) {
   const [progress, setProgress] = useState<SkillProgress[]>([]);
-  const [expandedPhases, setExpandedPhases] = useState<string[]>(['Beginner / Foundation']);
+  const [expandedPhases, setExpandedPhases] = useState<string[]>([]); // Start collapsed
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (roadmap?.roadmap_data?.phases?.length > 0) {
+      // Expand the first phase by default
+      setExpandedPhases([roadmap.roadmap_data.phases[0].name]);
+    }
     fetchProgress();
   }, [roadmap.id]);
 
@@ -77,11 +79,11 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         .eq('roadmap_id', roadmap.id);
 
       if (error) throw error;
-      
+
       // Initialize progress for all skills if not exists
       const existingSkills = new Set(data?.map(p => `${p.phase}-${p.skill_name}`));
       const missingProgress: any[] = [];
-      
+
       roadmap.roadmap_data.phases.forEach(phase => {
         phase.skills.forEach(skill => {
           const key = `${phase.name}-${skill.name}`;
@@ -102,7 +104,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
           .from('skill_progress')
           .insert(missingProgress)
           .select();
-        
+
         if (insertError) throw insertError;
         setProgress([...(data || []), ...(newProgress || [])]);
       } else {
@@ -127,7 +129,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
     try {
       const { error } = await supabase
         .from('skill_progress')
-        .update({ 
+        .update({
           completed: newCompleted,
           completed_at: newCompleted ? new Date().toISOString() : null
         })
@@ -135,8 +137,8 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
 
       if (error) throw error;
 
-      setProgress(progress.map(p => 
-        p.id === existingProgress.id 
+      setProgress(progress.map(p =>
+        p.id === existingProgress.id
           ? { ...p, completed: newCompleted }
           : p
       ));
@@ -164,7 +166,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
   };
 
   const togglePhase = (phaseName: string) => {
-    setExpandedPhases(prev => 
+    setExpandedPhases(prev =>
       prev.includes(phaseName)
         ? prev.filter(p => p !== phaseName)
         : [...prev, phaseName]
@@ -177,7 +179,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         .from('profiles')
         .update({ onboarding_completed: false })
         .eq('id', userId);
-      
+
       onNewRoadmap();
     } catch (error) {
       console.error('Error resetting profile:', error);
@@ -195,13 +197,13 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
       >
         <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary mb-4">
           <Target className="w-4 h-4" />
-          <span className="font-medium">Your Learning Path</span>
+          <span className="font-medium">Your Syllabus</span>
         </div>
         <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
           {roadmap.target_skill}
         </h1>
         <p className="text-muted-foreground">
-          Follow this personalized roadmap to achieve your goal
+          Follow this structured path to master the topics
         </p>
       </motion.div>
 
@@ -213,22 +215,21 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         className="glass-card p-6 mb-8"
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-semibold text-lg">Overall Progress</h2>
+          <h2 className="font-display font-semibold text-lg">Detailed Progress</h2>
           <span className="text-2xl font-bold gradient-text">{getTotalProgress()}%</span>
         </div>
         <Progress value={getTotalProgress()} className="h-3" />
         <p className="text-sm text-muted-foreground mt-2">
-          {progress.filter(p => p.completed).length} of {progress.length} skills completed
+          {progress.filter(p => p.completed).length} of {progress.length} subtopics completed
         </p>
       </motion.div>
 
-      {/* Phases */}
+      {/* Phases / Modules */}
       <div className="space-y-4">
         {roadmap.roadmap_data.phases.map((phase, phaseIndex) => {
           const phaseProgress = getPhaseProgress(phase.name);
           const isExpanded = expandedPhases.includes(phase.name);
-          const styleClass = phaseStyles[phase.name as keyof typeof phaseStyles] || 'phase-beginner';
-          const icon = phaseIcons[phase.name as keyof typeof phaseIcons] || '📚';
+          const styleClass = getTopicColor(phaseIndex);
 
           return (
             <motion.div
@@ -236,19 +237,20 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + phaseIndex * 0.1 }}
-              className="glass-card overflow-hidden"
+              className={`glass-card overflow-hidden border-l-4 ${styleClass.replace('phase', 'border')}`}
+              style={{ borderLeftColor: `var(--${styleClass})` }}
             >
-              {/* Phase Header */}
+              {/* Module Header */}
               <button
                 onClick={() => togglePhase(phase.name)}
                 className="w-full p-6 flex items-center justify-between hover:bg-secondary/20 transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-3xl">{icon}</span>
+                  <span className="text-2xl p-2 bg-secondary rounded-lg">📑</span>
                   <div className="text-left">
                     <h3 className="font-display font-semibold text-lg">{phase.name}</h3>
                     <p className="text-sm text-muted-foreground">
-                      {phase.skills.length} skills • {phaseProgress}% complete
+                      {phase.skills.length} subtopics • {phaseProgress}% complete
                     </p>
                   </div>
                 </div>
@@ -278,6 +280,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                         p => p.skill_name === skill.name && p.phase === phase.name
                       );
                       const isCompleted = skillProgress?.completed || false;
+                      const timeDisplay = skill.days || skill.estimatedTime;
 
                       return (
                         <motion.div
@@ -285,36 +288,46 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                           initial={{ opacity: 0, x: -10 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: skillIndex * 0.05 }}
-                          className={`p-4 rounded-lg border transition-all ${
-                            isCompleted 
-                              ? 'bg-success/10 border-success/30' 
-                              : 'bg-secondary/30 border-border hover:border-primary/30'
-                          }`}
+                          className={`p-4 rounded-lg border transition-all ${isCompleted
+                            ? 'bg-success/10 border-success/30'
+                            : 'bg-secondary/30 border-border hover:border-primary/30'
+                            }`}
                         >
                           <div className="flex items-start gap-4">
-                            <button
-                              onClick={() => toggleSkillCompletion(skill.name, phase.name)}
-                              className="mt-0.5 flex-shrink-0"
-                            >
-                              {isCompleted ? (
-                                <CheckCircle2 className="w-6 h-6 text-success" />
-                              ) : (
-                                <Circle className="w-6 h-6 text-muted-foreground hover:text-primary transition-colors" />
-                              )}
-                            </button>
+                            {/* Checkboxes removed as per user request */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2 mb-1">
-                                <h4 className={`font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
-                                  {skill.order}. {skill.name}
+                                <h4 className="font-medium">
+                                  {skillIndex + 1}. {skill.name}
                                 </h4>
                                 <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
                                   <Clock className="w-4 h-4" />
-                                  {skill.estimatedTime}
+                                  {timeDisplay}
                                 </div>
                               </div>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-sm text-muted-foreground mb-3">
                                 {skill.description}
                               </p>
+
+                              {/* Resources Section */}
+                              {skill.resources && skill.resources.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t border-border/50">
+                                  {skill.resources.map((resource, i) => (
+                                    <a
+                                      key={i}
+                                      href={resource.startsWith('http') ? resource : `https://google.com/search?q=${encodeURIComponent(resource + ' ' + skill.name)}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-md bg-secondary/50 hover:bg-primary/20 hover:text-primary transition-colors text-muted-foreground"
+                                      onClick={(e) => e.stopPropagation()} // Prevent completing skill when clicking link
+                                    >
+                                      <ExternalLink className="w-3 h-3" />
+                                      {resource.length > 30 ? resource.substring(0, 30) + '...' : resource}
+                                    </a>
+                                  ))}
+                                </div>
+                              )}
+
                             </div>
                           </div>
                         </motion.div>

@@ -5,9 +5,25 @@ import { User, Session } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { LogOut, Sparkles, Loader2 } from 'lucide-react';
+import {
+  LogOut,
+  Sparkles,
+  Loader2,
+  Code2,
+  Globe,
+  Zap,
+  Shield,
+  Database,
+  Smartphone,
+  Layout,
+  Terminal,
+  BrainCircuit,
+  LineChart
+} from 'lucide-react';
 import Onboarding from '@/components/Onboarding';
 import RoadmapDisplay from '@/components/RoadmapDisplay';
+import GeneralAssessment from '@/components/GeneralAssessment';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Profile {
   id: string;
@@ -27,30 +43,39 @@ interface Roadmap {
   created_at: string;
 }
 
+const CAREERS = [
+  { id: 'Full-Stack Development', icon: Globe, label: 'Full-Stack Development', available: true },
+  { id: 'Frontend Development', icon: Zap, label: 'Frontend Development', available: false },
+  { id: 'Backend Development', icon: Code2, label: 'Backend Development', available: false },
+  { id: 'Data Science', icon: Database, label: 'Data Science', available: false },
+  { id: 'AI / Machine Learning', icon: BrainCircuit, label: 'AI / Machine Learning', available: false },
+  { id: 'Cybersecurity', icon: Shield, label: 'Cybersecurity', available: false },
+  { id: 'DevOps', icon: Terminal, label: 'DevOps', available: false },
+  { id: 'Mobile App Development', icon: Smartphone, label: 'Mobile App Development', available: false },
+  { id: 'Product Management', icon: LineChart, label: 'Product Management', available: false },
+  { id: 'UI/UX Design', icon: Layout, label: 'UI/UX Design', available: false },
+];
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Derived State
+  const generalDone = profile?.existing_skills?.some(s => s.startsWith('General_Q4')) ?? false;
+  const careerSelected = profile?.target_skill === 'Full-Stack Development';
+
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setSession(session);
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      
-      if (!session?.user) {
-        navigate('/auth');
-      }
+      if (!session?.user) navigate('/auth');
     });
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      if (!session?.user) {
-        navigate('/auth');
-      }
+      if (!session?.user) navigate('/auth');
     });
 
     return () => subscription.unsubscribe();
@@ -58,31 +83,21 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (user) {
-      fetchProfile();
-      fetchRoadmap();
+      fetchData();
     }
   }, [user]);
 
-  const fetchProfile = async () => {
+  const fetchData = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user!.id)
         .single();
 
-      if (error) throw error;
-      setProfile(data);
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+      setProfile(profileData);
 
-  const fetchRoadmap = async () => {
-    try {
-      const { data, error } = await supabase
+      const { data: roadmapData } = await supabase
         .from('skill_roadmaps')
         .select('*')
         .eq('user_id', user!.id)
@@ -90,36 +105,46 @@ export default function Dashboard() {
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') throw error;
-      setRoadmap(data);
+      setRoadmap(roadmapData);
     } catch (error) {
-      console.error('Error fetching roadmap:', error);
+      console.error('Error fetching data', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast.success('Logged out successfully');
     navigate('/auth');
   };
 
-  const handleOnboardingComplete = () => {
-    fetchProfile();
-    fetchRoadmap();
+  const selectCareer = async (careerId: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('profiles')
+        .update({ target_skill: careerId })
+        .eq('id', user!.id);
+
+      if (error) throw error;
+      await fetchData();
+    } catch (error) {
+      toast.error('Failed to select career');
+    }
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      {/* Heavy Header only when not in initial flows */}
+      <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
@@ -127,65 +152,100 @@ export default function Dashboard() {
             </div>
             <span className="font-display font-bold text-xl">SkillPath</span>
           </div>
-          
+
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:block">
-              {profile?.full_name || user?.email}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              className="text-muted-foreground hover:text-foreground"
-            >
+            <ThemeToggle />
+            {profile && (
+              <span className="text-sm text-muted-foreground hidden sm:block">
+                {profile.full_name || user?.email}
+              </span>
+            )}
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
               <LogOut className="w-5 h-5" />
             </Button>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
-          {!profile?.onboarding_completed ? (
-            <motion.div
-              key="onboarding"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <Onboarding 
-                userId={user!.id} 
-                onComplete={handleOnboardingComplete} 
-              />
+
+          {/* Phase 1: General Assessment */}
+          {!generalDone && (
+            <motion.div key="general" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <GeneralAssessment userId={user!.id} onComplete={fetchData} />
             </motion.div>
-          ) : roadmap ? (
-            <motion.div
-              key="roadmap"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
-              <RoadmapDisplay 
-                roadmap={roadmap} 
+          )}
+
+          {/* Phase 2: Career Selection */}
+          {generalDone && !careerSelected && (
+            <motion.div key="career" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+              <div className="text-center mb-12 space-y-4">
+                <h1 className="text-4xl font-bold font-display">Choose your path</h1>
+                <p className="text-muted-foreground text-lg">Select a career track to begin your personalized journey</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {CAREERS.map((career) => (
+                  <div
+                    key={career.id}
+                    onClick={() => career.available && selectCareer(career.id)}
+                    className={`relative p-6 rounded-2xl border transition-all duration-300 ${career.available
+                      ? 'bg-card border-border hover:border-primary/50 hover:shadow-lg cursor-pointer group'
+                      : 'bg-secondary/20 border-border/50 opacity-60 cursor-not-allowed'
+                      }`}
+                  >
+                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${career.available ? 'bg-primary/10 text-primary group-hover:scale-110 transition-transform' : 'bg-secondary text-muted-foreground'
+                      }`}>
+                      <career.icon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">{career.label}</h3>
+
+                    {!career.available && (
+                      <span className="inline-block px-2 py-1 rounded-full bg-secondary text-xs font-medium text-muted-foreground">
+                        Coming Soon
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Phase 3: Deep Personalization (Specific Onboarding) */}
+          {generalDone && careerSelected && !profile?.onboarding_completed && (
+            <motion.div key="specific" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <Onboarding userId={user!.id} onComplete={fetchData} />
+              <div className="text-center mt-8">
+                <Button variant="link" onClick={() => selectCareer('')} className="text-muted-foreground">
+                  Choose a different career
+                </Button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Phase 4: Roadmap */}
+          {generalDone && careerSelected && profile?.onboarding_completed && roadmap && (
+            <motion.div key="roadmap" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              <RoadmapDisplay
+                roadmap={roadmap}
                 userId={user!.id}
-                onNewRoadmap={() => {
-                  setRoadmap(null);
-                  fetchProfile();
+                onNewRoadmap={async () => {
+                  await supabase.from('profiles').update({ onboarding_completed: false }).eq('id', user!.id);
+                  fetchData();
                 }}
               />
             </motion.div>
-          ) : (
-            <motion.div
-              key="generating"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center min-h-[60vh]"
-            >
-              <Loader2 className="w-12 h-12 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Generating your roadmap...</p>
-            </motion.div>
           )}
+
+          {/* Loading / Generate State fallback */}
+          {generalDone && careerSelected && profile?.onboarding_completed && !roadmap && (
+            <div className="flex flex-col items-center justify-center h-[50vh]">
+              <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+              <p className="text-muted-foreground">Retrieving your plan...</p>
+            </div>
+          )}
+
         </AnimatePresence>
       </main>
     </div>

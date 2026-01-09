@@ -1,117 +1,119 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  GraduationCap, 
-  Target, 
-  Clock, 
-  Sparkles, 
-  ArrowRight, 
-  ArrowLeft,
-  Loader2,
-  Plus,
-  X
-} from 'lucide-react';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Rocket,
+  Code2,
+  Globe,
+  Zap,
+  Target,
+  Clock,
+  ArrowRight,
+  Briefcase,
+  Layers,
+  Sparkles,
+  Loader2
+} from 'lucide-react';
 
 interface OnboardingProps {
   userId: string;
   onComplete: () => void;
 }
 
-const EDUCATION_LEVELS = [
-  'High School',
-  'Some College',
-  'Bachelor\'s Degree',
-  'Master\'s Degree',
-  'PhD',
-  'Self-taught',
-  'Bootcamp Graduate',
+// Q1: Experience Level
+const EXP_LEVELS = [
+  { id: 'Beginner', label: 'I’m just starting out', sub: 'Starting my journey' },
+  { id: 'Intermediate', label: 'I’ve built a few things and understand the basics', sub: 'Ready for more complexity' },
+  { id: 'Advanced', label: 'I build full applications confidently', sub: 'Polishing my skills' },
 ];
 
-const POPULAR_SKILLS = [
-  'JavaScript', 'Python', 'React', 'Node.js', 'SQL', 'HTML/CSS',
-  'TypeScript', 'Java', 'C++', 'Machine Learning', 'Data Analysis',
-  'Cloud Computing', 'DevOps', 'Mobile Development', 'UI/UX Design'
+// Q1 Follow-ups
+const EXP_FOLLOWUPS = {
+  'Beginner': [
+    { id: 'Zero', label: 'I’ve never built a website or app' },
+    { id: 'HTML_CSS', label: 'I’ve tried HTML/CSS but no real apps' },
+    { id: 'Tutorials', label: 'I’ve followed tutorials but never built end-to-end projects' },
+  ],
+  'Intermediate': [
+    { id: 'Frontend_Small', label: 'Small frontend apps (forms, dashboards, UI)' },
+    { id: 'Full_Basic', label: 'Apps with frontend and basic backend' },
+    { id: 'Full_API', label: 'Apps using APIs, authentication, or databases' },
+  ],
+  'Advanced': [
+    { id: 'Frontend_Arch', label: 'Frontend architecture and performance' },
+    { id: 'Backend_Scale', label: 'Backend systems and scalability' },
+    { id: 'Clean_Code', label: 'Clean code and best practices' },
+    { id: 'Market_Ready', label: 'Market or interview readiness' },
+  ]
+};
+
+// Q2: Goals
+const GOALS = [
+  { id: 'Job', label: 'Get a Full-Stack developer job', icon: Briefcase },
+  { id: 'Startup', label: 'Build my own product or startup', icon: Rocket },
+  { id: 'Freelance', label: 'Freelancing or client projects', icon: Globe },
+  { id: 'Fundamentals', label: 'Strengthen my Full-Stack fundamentals', icon: Layers },
 ];
 
-const POPULAR_TARGETS = [
-  'Frontend Developer',
-  'Backend Developer',
-  'Full-Stack Developer',
-  'Data Scientist',
-  'Machine Learning Engineer',
-  'DevOps Engineer',
-  'Mobile Developer',
-  'UI/UX Designer',
-  'Cloud Architect',
-  'Cybersecurity Specialist',
+// Q3: Time & Duration
+const DURATIONS = [
+  { id: 30, label: '30 Days' },
+  { id: 60, label: '60 Days' },
+  { id: 90, label: '90 Days' },
+  { id: 180, label: '6 Months' },
 ];
 
 export default function Onboarding({ userId, onComplete }: OnboardingProps) {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0); // Start at 0, which is Q1
   const [loading, setLoading] = useState(false);
-  const [generatingRoadmap, setGeneratingRoadmap] = useState(false);
-  
-  // Form data
-  const [educationLevel, setEducationLevel] = useState('');
-  const [existingSkills, setExistingSkills] = useState<string[]>([]);
-  const [customSkill, setCustomSkill] = useState('');
-  const [targetSkill, setTargetSkill] = useState('');
-  const [customTarget, setCustomTarget] = useState('');
-  const [weeklyHours, setWeeklyHours] = useState(10);
 
-  const addSkill = (skill: string) => {
-    if (skill && !existingSkills.includes(skill)) {
-      setExistingSkills([...existingSkills, skill]);
-    }
-    setCustomSkill('');
-  };
+  // State
+  const [expLevel, setExpLevel] = useState<string>('');
+  const [expDetail, setExpDetail] = useState<string>('');
+  const [goal, setGoal] = useState<string>('');
+  const [dailyHours, setDailyHours] = useState<number>(1);
+  const [targetDuration, setTargetDuration] = useState<number>(30); // days
 
-  const removeSkill = (skill: string) => {
-    setExistingSkills(existingSkills.filter(s => s !== skill));
-  };
-
-  const handleNext = () => {
-    if (step === 1 && !educationLevel) {
-      toast.error('Please select your education level');
-      return;
-    }
-    if (step === 3 && !targetSkill && !customTarget) {
-      toast.error('Please select or enter your target skill');
-      return;
-    }
-    setStep(step + 1);
-  };
+  const handleNext = () => setStep(prev => prev + 1);
+  const handleBack = () => setStep(prev => prev - 1);
 
   const handleComplete = async () => {
-    const finalTarget = customTarget || targetSkill;
-    if (!finalTarget) {
-      toast.error('Please select a target skill or role');
-      return;
-    }
-
     setLoading(true);
-    setGeneratingRoadmap(true);
-
     try {
-      // Update profile
+      // Calculate weekly hours
+      const weeklyHours = Math.ceil(dailyHours * 7);
+
+      // Prepare context for the edge function
+      const context = {
+        level: expLevel,
+        background: expDetail,
+        goal: goal,
+        daily_time: dailyHours,
+        target_duration: targetDuration // days
+      };
+
+      // 1. Fetch current profile to preserve General Assessment tags
+      const { data: currentProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('existing_skills')
+        .eq('id', userId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const currentSkills = currentProfile?.existing_skills || [];
+      // Avoid duplicates if they retry
+      const newTags = [`Goal: ${goal}`, `Detail: ${expDetail}`];
+      const mergedSkills = [...new Set([...currentSkills, ...newTags])];
+
+      // 2. Update profile with merged skills
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          education_level: educationLevel,
-          existing_skills: existingSkills,
-          target_skill: finalTarget,
+          education_level: expLevel,
+          existing_skills: mergedSkills, // Preserves General_Q4 tag
           weekly_hours: weeklyHours,
           onboarding_completed: true,
         })
@@ -119,7 +121,7 @@ export default function Onboarding({ userId, onComplete }: OnboardingProps) {
 
       if (profileError) throw profileError;
 
-      // Generate roadmap via edge function
+      // Generate Roadmap via Edge Function
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-roadmap`, {
         method: 'POST',
         headers: {
@@ -128,307 +130,172 @@ export default function Onboarding({ userId, onComplete }: OnboardingProps) {
         },
         body: JSON.stringify({
           userId,
-          educationLevel,
-          existingSkills,
-          targetSkill: finalTarget,
-          weeklyHours,
+          targetSkill: 'Full-Stack Development',
+          educationLevel: expLevel,
+          existingSkills: context.background ? [context.background] : [],
+          weeklyHours: weeklyHours,
+          context: context
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to generate roadmap');
+        throw new Error('Failed to generate roadmap');
       }
 
-      toast.success('Your personalized roadmap is ready!');
+      // Direct transition
       onComplete();
+
     } catch (error: any) {
-      console.error('Error completing onboarding:', error);
-      toast.error(error.message || 'Failed to complete setup');
+      console.error('Error in onboarding:', error);
+      toast.error('Failed to create your plan. Please try again.');
     } finally {
       setLoading(false);
-      setGeneratingRoadmap(false);
     }
   };
 
-  const steps = [
-    { icon: GraduationCap, title: 'Education', description: 'Your background' },
-    { icon: Sparkles, title: 'Skills', description: 'What you know' },
-    { icon: Target, title: 'Goal', description: 'What to learn' },
-    { icon: Clock, title: 'Time', description: 'Availability' },
-  ];
+  const fadeIn = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
+    transition: { duration: 0.3 }
+  };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      {/* Progress Steps */}
-      <div className="flex justify-center mb-8">
-        <div className="flex items-center gap-2">
-          {steps.map((s, i) => (
-            <div key={i} className="flex items-center">
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                  i + 1 <= step
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-muted-foreground'
-                }`}
-              >
-                <s.icon className="w-5 h-5" />
-              </div>
-              {i < steps.length - 1 && (
-                <div
-                  className={`w-12 h-0.5 mx-1 transition-all ${
-                    i + 1 < step ? 'bg-primary' : 'bg-secondary'
-                  }`}
-                />
-              )}
+    <div className="max-w-xl mx-auto px-4 py-8">
+      {/* Progress */}
+      <div className="w-full h-1 bg-secondary rounded-full mb-12 overflow-hidden">
+        <motion.div
+          className="h-full bg-primary"
+          initial={{ width: 0 }}
+          animate={{ width: `${((step + 1) / 4) * 100}%` }}
+          transition={{ duration: 0.5 }}
+        />
+      </div>
+
+      <AnimatePresence mode="wait">
+        {/* Step 0: Experience Level */}
+        {step === 0 && (
+          <motion.div key="step0" {...fadeIn} className="space-y-6">
+            <div className="text-center space-y-2 mb-8">
+              <h2 className="text-3xl font-bold tracking-tight">Experience Level</h2>
+              <p className="text-muted-foreground">How would you describe your experience with building web applications?</p>
             </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Step Content */}
-      <div className="glass-card p-8">
-        <AnimatePresence mode="wait">
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <h2 className="font-display text-2xl font-bold mb-2">What's your education background?</h2>
-                <p className="text-muted-foreground">This helps us tailor your learning path</p>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Education Level</Label>
-                <Select value={educationLevel} onValueChange={setEducationLevel}>
-                  <SelectTrigger className="bg-secondary/50">
-                    <SelectValue placeholder="Select your education level" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {EDUCATION_LEVELS.map((level) => (
-                      <SelectItem key={level} value={level}>
-                        {level}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </motion.div>
-          )}
-
-          {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <h2 className="font-display text-2xl font-bold mb-2">What skills do you already have?</h2>
-                <p className="text-muted-foreground">Select or add your current skills (optional)</p>
-              </div>
-
-              {/* Selected Skills */}
-              {existingSkills.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {existingSkills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary/20 text-primary rounded-full text-sm"
-                    >
-                      {skill}
-                      <button onClick={() => removeSkill(skill)} className="hover:text-destructive">
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Popular Skills */}
-              <div className="flex flex-wrap gap-2">
-                {POPULAR_SKILLS.filter(s => !existingSkills.includes(s)).map((skill) => (
-                  <button
-                    key={skill}
-                    onClick={() => addSkill(skill)}
-                    className="px-3 py-1.5 bg-secondary text-secondary-foreground rounded-full text-sm hover:bg-secondary/80 transition-colors"
-                  >
-                    {skill}
-                  </button>
-                ))}
-              </div>
-
-              {/* Custom Skill Input */}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Add custom skill..."
-                  value={customSkill}
-                  onChange={(e) => setCustomSkill(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && addSkill(customSkill)}
-                  className="bg-secondary/50"
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => addSkill(customSkill)}
-                  disabled={!customSkill}
+            <div className="grid gap-3">
+              {EXP_LEVELS.map((level) => (
+                <button
+                  key={level.id}
+                  onClick={() => { setExpLevel(level.id); handleNext(); }}
+                  className="group p-5 rounded-xl border border-border/50 bg-card/50 hover:bg-primary/5 hover:border-primary/50 transition-all text-left"
                 >
-                  <Plus className="w-4 h-4" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
+                  <div className="font-semibold text-lg">{level.label}</div>
+                  <div className="text-sm text-muted-foreground">{level.sub}</div>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <h2 className="font-display text-2xl font-bold mb-2">What do you want to learn?</h2>
-                <p className="text-muted-foreground">Choose your target skill or career goal</p>
-              </div>
+        {/* Step 1: Follow-up Detail */}
+        {step === 1 && (
+          <motion.div key="step1" {...fadeIn} className="space-y-6">
+            <div className="text-center space-y-2 mb-8">
+              <h2 className="text-3xl font-bold tracking-tight">Let's get specific</h2>
+              <p className="text-muted-foreground">
+                {expLevel === 'Beginner' && "What best describes where you are right now?"}
+                {expLevel === 'Intermediate' && "What have you already built on your own?"}
+                {expLevel === 'Advanced' && "Which area do you want to improve the most?"}
+              </p>
+            </div>
+            <div className="grid gap-3">
+              {EXP_FOLLOWUPS[expLevel as keyof typeof EXP_FOLLOWUPS].map((option) => (
+                <button
+                  key={option.id}
+                  onClick={() => { setExpDetail(option.id); handleNext(); }}
+                  className="p-4 rounded-xl border border-border/50 bg-card/50 hover:bg-primary/5 hover:border-primary/50 transition-all text-left font-medium"
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <Button variant="ghost" onClick={handleBack} className="mt-4">Back</Button>
+          </motion.div>
+        )}
 
-              <div className="grid grid-cols-2 gap-2">
-                {POPULAR_TARGETS.map((target) => (
+        {/* Step 2: Goal */}
+        {step === 2 && (
+          <motion.div key="step2" {...fadeIn} className="space-y-6">
+            <div className="text-center space-y-2 mb-8">
+              <h2 className="text-3xl font-bold tracking-tight">Your Main Goal</h2>
+              <p className="text-muted-foreground">What do you want to achieve with Full-Stack skills?</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {GOALS.map((g) => (
+                <button
+                  key={g.id}
+                  onClick={() => { setGoal(g.id); handleNext(); }}
+                  className="p-6 rounded-xl border border-border/50 bg-card/50 hover:bg-primary/5 hover:border-primary/50 transition-all text-center flex flex-col items-center gap-3 h-40 justify-center"
+                >
+                  <g.icon className="w-8 h-8 text-primary/80" />
+                  <span className="font-medium">{g.label}</span>
+                </button>
+              ))}
+            </div>
+            <Button variant="ghost" onClick={handleBack} className="mt-4">Back</Button>
+          </motion.div>
+        )}
+
+        {/* Step 3: Time & Duration */}
+        {step === 3 && (
+          <motion.div key="step3" {...fadeIn} className="space-y-8">
+            <div className="text-center space-y-2 mb-8">
+              <h2 className="text-3xl font-bold tracking-tight">Commitment</h2>
+              <p className="text-muted-foreground">How much time can you spend, and for how long?</p>
+            </div>
+
+            {/* Daily Time */}
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-muted-foreground block">Daily Study Time</label>
+              <div className="flex items-center gap-4">
+                <Clock className="w-5 h-5 text-primary" />
+                <input
+                  type="range" min="0.5" max="8" step="0.5"
+                  value={dailyHours}
+                  onChange={(e) => setDailyHours(parseFloat(e.target.value))}
+                  className="w-full accent-primary"
+                />
+                <span className="font-mono font-bold w-16 text-right">{dailyHours}h</span>
+              </div>
+            </div>
+
+            {/* Target Duration */}
+            <div className="space-y-4">
+              <label className="text-sm font-medium text-muted-foreground block">Target Readiness</label>
+              <div className="grid grid-cols-2 gap-3">
+                {DURATIONS.map(d => (
                   <button
-                    key={target}
-                    onClick={() => {
-                      setTargetSkill(target);
-                      setCustomTarget('');
-                    }}
-                    className={`p-3 rounded-lg text-left transition-all ${
-                      targetSkill === target
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                    }`}
+                    key={d.id}
+                    onClick={() => setTargetDuration(d.id)}
+                    className={`p-3 rounded-lg border transition-all ${targetDuration === d.id
+                      ? 'border-primary bg-primary/10 text-primary'
+                      : 'border-border bg-card/30 hover:bg-card'
+                      }`}
                   >
-                    {target}
+                    {d.label}
                   </button>
                 ))}
               </div>
+            </div>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="bg-card px-2 text-muted-foreground">or enter custom</span>
-                </div>
-              </div>
-
-              <Input
-                placeholder="Enter your target skill or role..."
-                value={customTarget}
-                onChange={(e) => {
-                  setCustomTarget(e.target.value);
-                  setTargetSkill('');
-                }}
-                className="bg-secondary/50"
-              />
-            </motion.div>
-          )}
-
-          {step === 4 && (
-            <motion.div
-              key="step4"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <h2 className="font-display text-2xl font-bold mb-2">How much time can you dedicate?</h2>
-                <p className="text-muted-foreground">Weekly hours for learning</p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>1 hour</span>
-                  <span className="font-display font-bold text-2xl text-foreground">{weeklyHours}h/week</span>
-                  <span>40 hours</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="40"
-                  value={weeklyHours}
-                  onChange={(e) => setWeeklyHours(parseInt(e.target.value))}
-                  className="w-full h-2 bg-secondary rounded-lg appearance-none cursor-pointer accent-primary"
-                />
-                <div className="grid grid-cols-3 gap-2 mt-4">
-                  {[5, 10, 20].map((hours) => (
-                    <button
-                      key={hours}
-                      onClick={() => setWeeklyHours(hours)}
-                      className={`py-2 rounded-lg transition-all ${
-                        weeklyHours === hours
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                      }`}
-                    >
-                      {hours}h/week
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {generatingRoadmap && (
-                <div className="mt-6 p-4 bg-primary/10 rounded-lg border border-primary/20">
-                  <div className="flex items-center gap-3">
-                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                    <div>
-                      <p className="font-medium text-primary">Generating your roadmap...</p>
-                      <p className="text-sm text-muted-foreground">This may take a few seconds</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Navigation */}
-        <div className="flex justify-between mt-8 pt-6 border-t border-border">
-          <Button
-            variant="ghost"
-            onClick={() => setStep(step - 1)}
-            disabled={step === 1 || loading}
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back
-          </Button>
-          
-          {step < 4 ? (
-            <Button onClick={handleNext} className="glow-effect">
-              Next
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
-          ) : (
-            <Button onClick={handleComplete} disabled={loading} className="glow-effect">
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  Generate Roadmap
-                  <Sparkles className="w-4 h-4 ml-2" />
-                </>
-              )}
-            </Button>
-          )}
-        </div>
-      </div>
+            <div className="pt-6">
+              <Button onClick={handleComplete} disabled={loading} className="w-full gap-2 text-lg h-12">
+                {loading ? <Loader2 className="animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                Generate My Plan
+              </Button>
+              <Button variant="ghost" onClick={handleBack} className="w-full mt-2" disabled={loading}>Back</Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
