@@ -22,8 +22,10 @@ import {
   Play,
   Award,
   Loader2,
+  Lock,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import SkillNotes from './SkillNotes';
 
 interface QuizQuestion {
   question: string;
@@ -49,6 +51,8 @@ interface SkillDetailModalProps {
   onComplete: () => void;
   userId: string;
   roadmapId: string;
+  isLocked?: boolean;
+  lockedMessage?: string;
 }
 
 export default function SkillDetailModal({
@@ -60,6 +64,8 @@ export default function SkillDetailModal({
   onComplete,
   userId,
   roadmapId,
+  isLocked = false,
+  lockedMessage = '',
 }: SkillDetailModalProps) {
   const [showQuiz, setShowQuiz] = useState(false);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -157,6 +163,17 @@ export default function SkillDetailModal({
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
+          {/* Locked Message */}
+          {isLocked && (
+            <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center gap-3">
+              <Lock className="w-6 h-6 text-amber-500" />
+              <div>
+                <p className="font-medium text-amber-500">This skill is locked</p>
+                <p className="text-sm text-muted-foreground">{lockedMessage}</p>
+              </div>
+            </div>
+          )}
+
           {/* Description & Time */}
           <div className="space-y-3">
             <p className="text-muted-foreground">{skill.description}</p>
@@ -167,7 +184,7 @@ export default function SkillDetailModal({
           </div>
 
           {/* Resources Section */}
-          {skill.resources && skill.resources.length > 0 && (
+          {!isLocked && skill.resources && skill.resources.length > 0 && (
             <div className="space-y-3">
               <h3 className="font-semibold flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-primary" />
@@ -207,8 +224,18 @@ export default function SkillDetailModal({
             </div>
           )}
 
+          {/* Notes Section */}
+          {!isLocked && (
+            <SkillNotes
+              userId={userId}
+              roadmapId={roadmapId}
+              skillName={skill.name}
+              phase={phase}
+            />
+          )}
+
           {/* Quiz Section */}
-          {!isCompleted && quiz.length > 0 && (
+          {!isLocked && !isCompleted && quiz.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold flex items-center gap-2">
