@@ -287,11 +287,3 @@ export default function Dashboard() {
     </div>
   );
 }
-            </div>
-          )}
-
-        </AnimatePresence>
-      </main>
-    </div>
-  );
-}
