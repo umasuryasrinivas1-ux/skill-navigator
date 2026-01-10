@@ -46,6 +46,17 @@ const QUESTIONS = [
             "Somewhat confident",
             "Very confident"
         ]
+    },
+    {
+        id: 5,
+        question: "What kind of work excites you the most?",
+        options: [
+            "Building visual interfaces & user experiences",
+            "Analyzing data & finding patterns",
+            "Designing server logic & databases",
+            "Automating systems & infrastructure",
+            "Building complete applications from scratch"
+        ]
     }
 ];
 
@@ -68,18 +79,33 @@ export default function GeneralAssessment({ userId, onComplete }: GeneralAssessm
     const finishAssessment = async (finalAnswers: string[]) => {
         setLoading(true);
         try {
-            // Store answers as tags/metadata in existing_skills for now, 
-            // formatted as "General_Q{i}: {answer}"
+            // Calculate recommended roles based on Q5 (index 4)
+            const interestAnswer = finalAnswers[4];
+            let recommendations: string[] = [];
+
+            if (interestAnswer.includes("visual")) {
+                recommendations = ['Frontend Development', 'UI/UX Design'];
+            } else if (interestAnswer.includes("data")) {
+                recommendations = ['Data Science', 'AI / Machine Learning', 'Backend Development'];
+            } else if (interestAnswer.includes("server")) {
+                recommendations = ['Backend Development', 'DevOps'];
+            } else if (interestAnswer.includes("Automating")) {
+                recommendations = ['DevOps', 'Cybersecurity'];
+            } else if (interestAnswer.includes("complete applications")) {
+                recommendations = ['Full-Stack Development', 'Mobile App Development', 'Product Management'];
+            }
+
+            // Formatting answers for storage
             const formattedAnswers = finalAnswers.map((ans, i) => `General_Q${i + 1}: ${ans}`);
+
+            // Add recommendations as tags
+            const recommendationTags = recommendations.map(role => `Recommended: ${role}`);
+            const finalSkills = [...formattedAnswers, ...recommendationTags];
 
             const { error } = await supabase
                 .from('profiles')
                 .update({
-                    existing_skills: formattedAnswers,
-                    // We can use a metadata field if available, but schema limitations force us to re-use existing columns creatively 
-                    // or we trust the state flow.
-                    // Let's mark a flag? We don't have a 'general_onboarding_completed' flag. 
-                    // But we can check if existing_skills contains 'General_Q4'.
+                    existing_skills: finalSkills,
                 })
                 .eq('id', userId);
 

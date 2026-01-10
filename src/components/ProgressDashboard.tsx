@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   Flame,
   Clock,
@@ -11,9 +12,12 @@ import {
   Zap,
   BookOpen,
   ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
+import { CAREERS } from '@/data/careers';
+import { toast } from 'sonner';
 import {
   LineChart,
   Line,
@@ -32,6 +36,7 @@ interface ProgressDashboardProps {
     full_name: string | null;
     weekly_hours: number;
     weekly_goal_hours?: number;
+    existing_skills: string[];
   };
   roadmap: {
     id: string;
@@ -57,6 +62,7 @@ export default function ProgressDashboard({
   roadmap,
   onViewRoadmap,
 }: ProgressDashboardProps) {
+  const navigate = useNavigate();
   const [activities, setActivities] = useState<LearningActivity[]>([]);
   const [skillProgress, setSkillProgress] = useState<SkillProgress[]>([]);
   const [loading, setLoading] = useState(true);
@@ -125,14 +131,14 @@ export default function ProgressDashboard({
     today.setHours(0, 0, 0, 0);
 
     // Check if user has activity today or yesterday to start counting
-    const sortedData = [...data].sort((a, b) => 
+    const sortedData = [...data].sort((a, b) =>
       new Date(b.date).getTime() - new Date(a.date).getTime()
     );
 
     for (let i = 0; i < sortedData.length; i++) {
       const activityDate = new Date(sortedData[i].date);
       activityDate.setHours(0, 0, 0, 0);
-      
+
       const expectedDate = new Date(today);
       expectedDate.setDate(expectedDate.getDate() - i);
 
@@ -182,6 +188,17 @@ export default function ProgressDashboard({
     if (hours === 0) return `${mins}m`;
     return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
   };
+
+  const recommendedIds = profile.existing_skills
+    .filter(s => s.startsWith('Recommended: '))
+    .map(s => s.replace('Recommended: ', ''))
+    .filter(id => id !== roadmap?.target_skill); // Don't show current skill
+
+  // If no recommendations stored, show default suggestions
+  const defaultRecommendations = ['Full-Stack Development', 'Frontend Development', 'Data Science'];
+  const idsToUse = recommendedIds.length > 0 ? recommendedIds : defaultRecommendations.filter(id => id !== roadmap?.target_skill);
+
+  const recommendations = CAREERS.filter(c => idsToUse.includes(c.id));
 
   const firstName = profile.full_name?.split(' ')[0] || 'there';
 
@@ -304,12 +321,12 @@ export default function ProgressDashboard({
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={getChartData()}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="day" 
+                <XAxis
+                  dataKey="day"
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
-                <YAxis 
+                <YAxis
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
@@ -321,9 +338,9 @@ export default function ProgressDashboard({
                   }}
                   labelStyle={{ color: 'hsl(var(--foreground))' }}
                 />
-                <Bar 
-                  dataKey="minutes" 
-                  fill="hsl(var(--primary))" 
+                <Bar
+                  dataKey="minutes"
+                  fill="hsl(var(--primary))"
                   radius={[4, 4, 0, 0]}
                   name="Minutes"
                 />
@@ -347,12 +364,12 @@ export default function ProgressDashboard({
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={getChartData()}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis 
-                  dataKey="day" 
+                <XAxis
+                  dataKey="day"
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
-                <YAxis 
+                <YAxis
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                 />
@@ -364,10 +381,10 @@ export default function ProgressDashboard({
                   }}
                   labelStyle={{ color: 'hsl(var(--foreground))' }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="skills" 
-                  stroke="hsl(var(--primary))" 
+                <Line
+                  type="monotone"
+                  dataKey="skills"
+                  stroke="hsl(var(--primary))"
                   strokeWidth={2}
                   dot={{ fill: 'hsl(var(--primary))' }}
                   name="Skills"
@@ -378,35 +395,66 @@ export default function ProgressDashboard({
         </motion.div>
       </div>
 
-      {/* Quick Actions */}
-      {roadmap && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="glass-card p-6"
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-xl bg-primary/10">
-                <BookOpen className="w-6 h-6 text-primary" />
+      {/* Quick Actions & Recommendations */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {roadmap && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="glass-card p-6 h-full flex flex-col justify-center"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <BookOpen className="w-6 h-6 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-display font-semibold text-lg">
+                    Continue Learning: {roadmap.target_skill}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Pick up where you left off
+                  </p>
+                </div>
               </div>
-              <div>
-                <h3 className="font-display font-semibold text-lg">
-                  Continue Learning: {roadmap.target_skill}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Pick up where you left off
-                </p>
-              </div>
+              <Button onClick={onViewRoadmap} className="gap-2 shrink-0">
+                View Roadmap
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
-            <Button onClick={onViewRoadmap} className="gap-2">
-              View Roadmap
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+
+        {recommendations.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="glass-card p-6 border-primary/20 bg-primary/5"
+          >
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h3 className="font-display font-semibold text-lg">
+                {recommendedIds.length > 0 ? 'Also Recommended for You' : 'Explore Other Paths'}
+              </h3>
+            </div>
+
+            <div className="space-y-3">
+              {recommendations.slice(0, 2).map(career => (
+                <div key={career.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-secondary">
+                      <career.icon className="w-4 h-4 text-muted-foreground" />
+                    </div>
+                    <span className="font-medium text-sm">{career.label}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </div>
     </div>
   );
 }

@@ -5,20 +5,11 @@ import { User } from '@supabase/supabase-js';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { CAREERS } from '@/data/careers';
 import {
   LogOut,
   Sparkles,
   Loader2,
-  Code2,
-  Globe,
-  Zap,
-  Shield,
-  Database,
-  Smartphone,
-  Layout,
-  Terminal,
-  BrainCircuit,
-  LineChart,
   Home,
   BookOpen,
   CheckSquare,
@@ -47,24 +38,11 @@ interface Profile {
 interface Roadmap {
   id: string;
   target_skill: string;
-  roadmap_data: any;
+  phases: any[];
   created_at: string;
 }
 
 type DashboardView = 'home' | 'roadmap';
-
-const CAREERS = [
-  { id: 'Full-Stack Development', icon: Globe, label: 'Full-Stack Development', available: true },
-  { id: 'Frontend Development', icon: Layout, label: 'Frontend Development', available: true },
-  { id: 'Backend Development', icon: Code2, label: 'Backend Development', available: true },
-  { id: 'Data Science', icon: Database, label: 'Data Science', available: true },
-  { id: 'AI / Machine Learning', icon: BrainCircuit, label: 'AI / Machine Learning', available: true },
-  { id: 'Cybersecurity', icon: Shield, label: 'Cybersecurity', available: true },
-  { id: 'DevOps', icon: Terminal, label: 'DevOps', available: true },
-  { id: 'Mobile App Development', icon: Smartphone, label: 'Mobile App Development', available: true },
-  { id: 'Product Management', icon: LineChart, label: 'Product Management', available: true },
-  { id: 'UI/UX Design', icon: Layout, label: 'UI/UX Design', available: true },
-];
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -76,7 +54,7 @@ export default function Dashboard() {
 
   // Derived State
   // Derived State
-  const generalDone = profile?.existing_skills?.some(s => s.startsWith('General_Q4')) ?? false;
+  const generalDone = profile?.existing_skills?.some(s => s.startsWith('General_Q5')) ?? false;
   const careerSelected = !!profile?.target_skill;
 
   useEffect(() => {
@@ -230,26 +208,44 @@ export default function Dashboard() {
                 <p className="text-muted-foreground text-lg">Select a career track to begin your personalized journey</p>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {CAREERS.map((career) => (
-                  <div
-                    key={career.id}
-                    onClick={() => career.available && selectCareer(career.id)}
-                    className={`relative p-6 rounded-2xl border transition-all duration-300 ${career.available
-                      ? 'bg-card border-border hover:border-primary/50 hover:shadow-lg cursor-pointer group'
-                      : 'bg-secondary/20 border-border/50 opacity-60 cursor-not-allowed'
-                      }`}
-                  >
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${career.available ? 'bg-primary/10 text-primary group-hover:scale-110 transition-transform' : 'bg-secondary text-muted-foreground'}`}>
-                      <career.icon className="w-6 h-6" />
+                {CAREERS.map((career) => {
+                  const isRecommended = profile?.existing_skills?.includes(`Recommended: ${career.id}`);
+
+                  return (
+                    <div
+                      key={career.id}
+                      onClick={() => career.available && selectCareer(career.id)}
+                      className={`relative p-6 rounded-2xl border transition-all duration-300 ${career.available
+                        ? isRecommended
+                          ? 'bg-primary/5 border-primary shadow-md hover:shadow-xl cursor-pointer group ring-1 ring-primary/20'
+                          : 'bg-card border-border hover:border-primary/50 hover:shadow-lg cursor-pointer group'
+                        : 'bg-secondary/20 border-border/50 opacity-60 cursor-not-allowed'
+                        }`}
+                    >
+                      {isRecommended && (
+                        <div className="absolute -top-3 right-4 px-3 py-1 bg-primary text-primary-foreground text-xs font-bold rounded-full shadow-sm flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Recommended
+                        </div>
+                      )}
+
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${career.available
+                        ? isRecommended
+                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/30 group-hover:scale-110 transition-transform'
+                          : 'bg-primary/10 text-primary group-hover:scale-110 transition-transform'
+                        : 'bg-secondary text-muted-foreground'
+                        }`}>
+                        <career.icon className="w-6 h-6" />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">{career.label}</h3>
+                      {!career.available && (
+                        <span className="inline-block px-2 py-1 rounded-full bg-secondary text-xs font-medium text-muted-foreground">
+                          Coming Soon
+                        </span>
+                      )}
                     </div>
-                    <h3 className="text-xl font-bold mb-2">{career.label}</h3>
-                    {!career.available && (
-                      <span className="inline-block px-2 py-1 rounded-full bg-secondary text-xs font-medium text-muted-foreground">
-                        Coming Soon
-                      </span>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </motion.div>
           )}
@@ -271,7 +267,10 @@ export default function Dashboard() {
             <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <ProgressDashboard
                 userId={user!.id}
-                profile={profile}
+                profile={{
+                  ...profile,
+                  existing_skills: profile.existing_skills || []
+                }}
                 roadmap={roadmap}
                 onViewRoadmap={() => setCurrentView('roadmap')}
               />

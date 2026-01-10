@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Sparkles, Target, Clock, CheckCircle, ArrowRight, Loader2, CheckSquare } from 'lucide-react';
+import { Sparkles, Target, Clock, CheckCircle, ArrowRight, Loader2, CheckSquare, Search } from 'lucide-react';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -38,6 +38,11 @@ export default function Index() {
   }
 
   const features = [
+    {
+      icon: Search,
+      title: 'Career Discovery',
+      description: 'Get AI-recommended roles based on your interests and skills',
+    },
     {
       icon: Target,
       title: 'Personalized Roadmaps',
