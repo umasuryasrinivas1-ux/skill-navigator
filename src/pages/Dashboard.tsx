@@ -22,6 +22,7 @@ import {
   Home,
   BookOpen,
   CheckSquare,
+  TrendingUp,
 } from 'lucide-react';
 import Onboarding from '@/components/Onboarding';
 import RoadmapDisplay from '@/components/RoadmapDisplay';
@@ -53,15 +54,15 @@ type DashboardView = 'home' | 'roadmap';
 
 const CAREERS = [
   { id: 'Full-Stack Development', icon: Globe, label: 'Full-Stack Development', available: true },
-  { id: 'Frontend Development', icon: Zap, label: 'Frontend Development', available: false },
-  { id: 'Backend Development', icon: Code2, label: 'Backend Development', available: false },
-  { id: 'Data Science', icon: Database, label: 'Data Science', available: false },
-  { id: 'AI / Machine Learning', icon: BrainCircuit, label: 'AI / Machine Learning', available: false },
-  { id: 'Cybersecurity', icon: Shield, label: 'Cybersecurity', available: false },
-  { id: 'DevOps', icon: Terminal, label: 'DevOps', available: false },
-  { id: 'Mobile App Development', icon: Smartphone, label: 'Mobile App Development', available: false },
-  { id: 'Product Management', icon: LineChart, label: 'Product Management', available: false },
-  { id: 'UI/UX Design', icon: Layout, label: 'UI/UX Design', available: false },
+  { id: 'Frontend Development', icon: Layout, label: 'Frontend Development', available: true },
+  { id: 'Backend Development', icon: Code2, label: 'Backend Development', available: true },
+  { id: 'Data Science', icon: Database, label: 'Data Science', available: true },
+  { id: 'AI / Machine Learning', icon: BrainCircuit, label: 'AI / Machine Learning', available: true },
+  { id: 'Cybersecurity', icon: Shield, label: 'Cybersecurity', available: true },
+  { id: 'DevOps', icon: Terminal, label: 'DevOps', available: true },
+  { id: 'Mobile App Development', icon: Smartphone, label: 'Mobile App Development', available: true },
+  { id: 'Product Management', icon: LineChart, label: 'Product Management', available: true },
+  { id: 'UI/UX Design', icon: Layout, label: 'UI/UX Design', available: true },
 ];
 
 export default function Dashboard() {
@@ -73,8 +74,9 @@ export default function Dashboard() {
   const [currentView, setCurrentView] = useState<DashboardView>('home');
 
   // Derived State
+  // Derived State
   const generalDone = profile?.existing_skills?.some(s => s.startsWith('General_Q4')) ?? false;
-  const careerSelected = profile?.target_skill === 'Full-Stack Development';
+  const careerSelected = !!profile?.target_skill;
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -132,7 +134,10 @@ export default function Dashboard() {
       setLoading(true);
       const { error } = await supabase
         .from('profiles')
-        .update({ target_skill: careerId })
+        .update({
+          target_skill: careerId,
+          onboarding_completed: false
+        })
         .eq('id', user!.id);
 
       if (error) throw error;
@@ -176,6 +181,12 @@ export default function Dashboard() {
                   label="Roadmap"
                   active={currentView === 'roadmap'}
                   onClick={() => setCurrentView('roadmap')}
+                />
+                <DashboardNavLink
+                  icon={TrendingUp}
+                  label="Trends"
+                  active={false}
+                  onClick={() => navigate('/trends')}
                 />
               </nav>
             )}
@@ -315,10 +326,18 @@ export default function Dashboard() {
                 </div>
                 <span className="text-xs font-medium">Roadmap</span>
               </button>
+              <button
+                onClick={() => navigate('/trends')}
+                className="flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <div className="p-1 rounded-full">
+                  <TrendingUp className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-medium">Trends</span>
+              </button>
             </div>
           </nav>
-        )
-      }
+        )}
     </div >
   );
 }

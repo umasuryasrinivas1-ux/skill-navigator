@@ -47,17 +47,19 @@ interface Roadmap {
 }
 
 const getTopicColor = (name: string, index: number) => {
-  if (name.includes('Frontend')) return 'phase-beginner';
-  if (name.includes('Backend')) return 'phase-intermediate';
-  if (name.includes('Database')) return 'phase-advanced';
+  const lower = name.toLowerCase();
+  if (lower.includes('frontend') || lower.includes('foundation') || lower.includes('basic') || lower.includes('beginner')) return 'phase-beginner';
+  if (lower.includes('backend') || lower.includes('core') || lower.includes('intermediate')) return 'phase-intermediate';
+  if (lower.includes('database') || lower.includes('advanced') || lower.includes('mastery') || lower.includes('infrastructure')) return 'phase-advanced';
   const colors = ['phase-beginner', 'phase-intermediate', 'phase-advanced', 'phase-market'];
   return colors[index % colors.length];
 };
 
 const getTopicIcon = (name: string) => {
-  if (name.includes('Frontend')) return <Layout className="w-6 h-6" />;
-  if (name.includes('Backend')) return <Server className="w-6 h-6" />;
-  if (name.includes('Database')) return <Database className="w-6 h-6" />;
+  const lower = name.toLowerCase();
+  if (lower.includes('frontend') || lower.includes('foundation') || lower.includes('basic') || lower.includes('beginner')) return <Layout className="w-6 h-6" />;
+  if (lower.includes('backend') || lower.includes('core') || lower.includes('intermediate')) return <Server className="w-6 h-6" />;
+  if (lower.includes('database') || lower.includes('advanced') || lower.includes('mastery') || lower.includes('infrastructure')) return <Database className="w-6 h-6" />;
   return <BookOpen className="w-6 h-6" />;
 };
 
