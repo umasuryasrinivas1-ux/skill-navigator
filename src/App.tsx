@@ -12,6 +12,7 @@ import SkillDetail from "./pages/SkillDetail";
 import WeakPointsHub from "./pages/WeakPointsHub";
 import TrendsHub from "./pages/TrendsHub";
 import TrendDetail from "./pages/TrendDetail";
+import MentorHub from "./pages/MentorHub";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/roadmap/:roadmapId/phase/:phaseName/skill/:skillName" element={<SkillDetail />} />
           <Route path="/trends" element={<TrendsHub />} />
           <Route path="/trends/:trendId" element={<TrendDetail />} />
+          <Route path="/mentor" element={<MentorHub />} />
           <Route path="/weak-point/:id" element={<WeakPointDetail />} />
           <Route path="/weak-points-hub" element={<WeakPointsHub />} />
           <Route path="*" element={<NotFound />} />

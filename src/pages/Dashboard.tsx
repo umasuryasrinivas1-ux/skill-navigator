@@ -23,6 +23,7 @@ import {
   BookOpen,
   CheckSquare,
   TrendingUp,
+  MessageSquare,
 } from 'lucide-react';
 import Onboarding from '@/components/Onboarding';
 import RoadmapDisplay from '@/components/RoadmapDisplay';
@@ -188,6 +189,12 @@ export default function Dashboard() {
                   active={false}
                   onClick={() => navigate('/trends')}
                 />
+                <DashboardNavLink
+                  icon={MessageSquare}
+                  label="Mentor"
+                  active={false}
+                  onClick={() => navigate('/mentor')}
+                />
               </nav>
             )}
           </div>
@@ -334,6 +341,15 @@ export default function Dashboard() {
                   <TrendingUp className="w-6 h-6" />
                 </div>
                 <span className="text-xs font-medium">Trends</span>
+              </button>
+              <button
+                onClick={() => navigate('/mentor')}
+                className="flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <div className="p-1 rounded-full">
+                  <MessageSquare className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-medium">Mentor</span>
               </button>
             </div>
           </nav>

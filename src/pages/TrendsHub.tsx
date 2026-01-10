@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, TrendingUp, Home, BookOpen } from 'lucide-react';
+import { ArrowLeft, TrendingUp, Home, BookOpen, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { trends } from '@/data/trendsData';
 
@@ -91,6 +91,15 @@ export default function TrendsHub() {
                             <TrendingUp className="w-6 h-6" />
                         </div>
                         <span className="text-xs font-medium">Trends</span>
+                    </button>
+                    <button
+                        onClick={() => navigate('/mentor')}
+                        className="flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors text-muted-foreground hover:text-foreground"
+                    >
+                        <div className="p-1 rounded-full">
+                            <MessageSquare className="w-6 h-6" />
+                        </div>
+                        <span className="text-xs font-medium">Mentor</span>
                     </button>
                 </div>
             </nav>
