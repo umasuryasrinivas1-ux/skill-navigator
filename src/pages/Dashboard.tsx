@@ -21,6 +21,7 @@ import {
   LineChart,
   Home,
   BookOpen,
+  CheckSquare,
 } from 'lucide-react';
 import Onboarding from '@/components/Onboarding';
 import RoadmapDisplay from '@/components/RoadmapDisplay';
@@ -156,13 +157,11 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-primary-foreground" />
-              </div>
-              <span className="font-display font-bold text-xl">SkillPath</span>
+            <div className="flex items-center gap-2">
+              <CheckSquare className="w-6 h-6 text-primary" />
+              <span className="font-display font-bold text-xl">DoThenDecide</span>
             </div>
-            
+
             {/* Navigation - only show when roadmap exists */}
             {showFullDashboard && (
               <nav className="hidden md:flex items-center gap-1">
@@ -220,7 +219,7 @@ export default function Dashboard() {
                     className={`relative p-6 rounded-2xl border transition-all duration-300 ${career.available
                       ? 'bg-card border-border hover:border-primary/50 hover:shadow-lg cursor-pointer group'
                       : 'bg-secondary/20 border-border/50 opacity-60 cursor-not-allowed'
-                    }`}
+                      }`}
                   >
                     <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-4 ${career.available ? 'bg-primary/10 text-primary group-hover:scale-110 transition-transform' : 'bg-secondary text-muted-foreground'}`}>
                       <career.icon className="w-6 h-6" />
@@ -284,6 +283,42 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
       </main>
-    </div>
+
+      {/* Mobile Navigation */}
+      {
+        showFullDashboard && (
+          <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-background/80 backdrop-blur-xl border-t border-border pb-safe">
+            <div className="flex items-center justify-around h-16">
+              <button
+                onClick={() => setCurrentView('home')}
+                className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${currentView === 'home'
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                <div className={`p-1 rounded-full transition-all ${currentView === 'home' ? 'bg-primary/10' : ''
+                  }`}>
+                  <Home className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-medium">Home</span>
+              </button>
+              <button
+                onClick={() => setCurrentView('roadmap')}
+                className={`flex flex-col items-center justify-center w-full h-full space-y-1 transition-colors ${currentView === 'roadmap'
+                  ? 'text-primary'
+                  : 'text-muted-foreground hover:text-foreground'
+                  }`}
+              >
+                <div className={`p-1 rounded-full transition-all ${currentView === 'roadmap' ? 'bg-primary/10' : ''
+                  }`}>
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-medium">Roadmap</span>
+              </button>
+            </div>
+          </nav>
+        )
+      }
+    </div >
   );
 }

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import RoadmapExportShare from './RoadmapExportShare';
+import MonkeyAssistant from './MonkeyAssistant';
 
 interface QuizQuestion {
   question: string;
@@ -443,6 +444,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
       </motion.div>
 
 
+      <MonkeyAssistant />
     </div>
   );
 }

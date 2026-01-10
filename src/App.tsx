@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import SharedRoadmap from "./pages/SharedRoadmap";
 import WeakPointDetail from "./pages/WeakPointDetail";
 import SkillDetail from "./pages/SkillDetail";
+import WeakPointsHub from "./pages/WeakPointsHub";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/roadmap/:id" element={<SharedRoadmap />} />
           <Route path="/roadmap/:roadmapId/phase/:phaseName/skill/:skillName" element={<SkillDetail />} />
           <Route path="/weak-point/:id" element={<WeakPointDetail />} />
+          <Route path="/weak-points-hub" element={<WeakPointsHub />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

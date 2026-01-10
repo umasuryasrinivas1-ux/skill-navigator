@@ -14,6 +14,7 @@ import {
   Sparkles,
   ExternalLink,
   ArrowLeft,
+  CheckSquare,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -131,11 +132,9 @@ export default function SharedRoadmap() {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-display font-bold text-xl">SkillPath</span>
+          <Link to="/" className="flex items-center gap-2">
+            <CheckSquare className="w-6 h-6 text-primary" />
+            <span className="font-display font-bold text-xl">DoThenDecide</span>
           </Link>
           <Link to="/auth">
             <Button>Get Started</Button>
@@ -158,7 +157,7 @@ export default function SharedRoadmap() {
             {roadmap.target_skill}
           </h1>
           <p className="text-muted-foreground">
-            A learning path created with SkillPath
+            A learning path created with DoThenDecide
           </p>
         </motion.div>
 
@@ -261,11 +260,10 @@ export default function SharedRoadmap() {
                                       href={href}
                                       target="_blank"
                                       rel="noopener noreferrer"
-                                      className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors ${
-                                        isYouTube
-                                          ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400'
-                                          : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400'
-                                      }`}
+                                      className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors ${isYouTube
+                                        ? 'bg-red-500/10 hover:bg-red-500/20 text-red-400'
+                                        : 'bg-blue-500/10 hover:bg-blue-500/20 text-blue-400'
+                                        }`}
                                     >
                                       {isYouTube ? '▶️' : '📖'}
                                       <span className="font-medium">{isYouTube ? 'Tutorial' : 'Docs'}</span>

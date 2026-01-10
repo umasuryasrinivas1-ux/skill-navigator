@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Sparkles, Target, Clock, CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { Sparkles, Target, Clock, CheckCircle, ArrowRight, Loader2, CheckSquare } from 'lucide-react';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -67,11 +67,9 @@ export default function Index() {
       {/* Header */}
       <header className="relative z-10 container mx-auto px-4 py-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center animate-pulse-glow">
-              <Sparkles className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="font-display font-bold text-2xl">SkillPath</span>
+          <div className="flex items-center gap-2">
+            <CheckSquare className="w-8 h-8 text-primary" />
+            <span className="font-display font-bold text-2xl">DoThenDecide</span>
           </div>
           <Button onClick={() => navigate('/auth')} variant="ghost">
             Sign In
@@ -91,14 +89,14 @@ export default function Index() {
             <Sparkles className="w-4 h-4" />
             <span className="text-sm font-medium">AI-Powered Learning Paths</span>
           </div>
-          
+
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight">
             Your Personalized Path to{' '}
             <span className="gradient-text">Mastery</span>
           </h1>
-          
+
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-            Tell us your goals and current skills, and our AI will create a structured learning roadmap 
+            Tell us your goals and current skills, and our AI will create a structured learning roadmap
             tailored to your pace and schedule.
           </p>
 
@@ -153,7 +151,7 @@ export default function Index() {
             <h2 className="font-display text-2xl font-bold mb-2">How It Works</h2>
             <p className="text-muted-foreground">Three simple steps to your learning journey</p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             {[
               { step: '01', title: 'Share Your Profile', desc: 'Tell us about your background and current skills' },
