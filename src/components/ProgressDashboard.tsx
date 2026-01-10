@@ -220,6 +220,56 @@ export default function ProgressDashboard({
         </p>
       </motion.div>
 
+      {/* Personalized Recommendations - Prominent Position */}
+      {recommendations.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.98 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ delay: 0.05, type: "spring", stiffness: 100 }}
+          className="relative overflow-hidden"
+        >
+          {/* Animated gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/10 rounded-2xl blur-xl animate-pulse" />
+
+          <div className="relative glass-card p-8 rounded-2xl border-2 border-primary/30 bg-gradient-to-br from-primary/5 via-background to-accent/5 shadow-lg shadow-primary/10">
+            <div className="relative z-10">
+              {/* Header with badge */}
+              <div className="flex flex-col items-center justify-center text-center mb-6">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/30 mb-3">
+                  <Sparkles className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <h3 className="font-display font-bold text-xl">
+                  {recommendedIds.length > 0 ? '✨ Best Recommended Career for You' : 'Explore New Paths'}
+                </h3>
+                <p className="text-sm text-muted-foreground">Based on your interests and skills</p>
+              </div>
+
+              {/* Career Cards - Horizontal Layout */}
+              <div className="flex flex-col md:flex-row gap-4 justify-center">
+                {recommendations.slice(0, 2).map((career, index) => (
+                  <motion.div
+                    key={career.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + index * 0.1 }}
+                    className="flex-1 max-w-sm group flex items-center gap-4 p-5 rounded-xl bg-background/80 border border-border/50 hover:border-primary/50 hover:bg-background hover:shadow-md transition-all cursor-pointer"
+                  >
+                    <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 group-hover:from-primary/20 group-hover:to-accent/20 transition-colors">
+                      <career.icon className="w-6 h-6 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-base truncate">{career.label}</p>
+                      <p className="text-sm text-muted-foreground">Click to explore</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Stats Cards */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -422,35 +472,6 @@ export default function ProgressDashboard({
                 View Roadmap
                 <ChevronRight className="w-4 h-4" />
               </Button>
-            </div>
-          </motion.div>
-        )}
-
-        {recommendations.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6 }}
-            className="glass-card p-6 border-primary/20 bg-primary/5"
-          >
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="w-5 h-5 text-primary" />
-              <h3 className="font-display font-semibold text-lg">
-                {recommendedIds.length > 0 ? 'Also Recommended for You' : 'Explore Other Paths'}
-              </h3>
-            </div>
-
-            <div className="space-y-3">
-              {recommendations.slice(0, 2).map(career => (
-                <div key={career.id} className="flex items-center justify-between p-3 rounded-lg bg-background/50 border border-border">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-lg bg-secondary">
-                      <career.icon className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <span className="font-medium text-sm">{career.label}</span>
-                  </div>
-                </div>
-              ))}
             </div>
           </motion.div>
         )}

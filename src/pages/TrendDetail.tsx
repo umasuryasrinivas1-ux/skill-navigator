@@ -1,11 +1,22 @@
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Sparkles, CheckCircle2, TrendingUp, BookOpen, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Sparkles, CheckCircle2, TrendingUp, BookOpen, Code2, Brain, BarChart3, Cloud } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { trends } from '@/data/trendsData';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import MainHeader from '@/components/MainHeader';
+
+const getIcon = (id: string) => {
+    switch (id) {
+        case 'full-stack': return Code2;
+        case 'ml-engineering': return Brain;
+        case 'data-science': return BarChart3;
+        case 'devops': return Cloud;
+        default: return Code2;
+    }
+};
 
 export default function TrendDetail() {
     const { trendId } = useParams();
@@ -17,6 +28,8 @@ export default function TrendDetail() {
     if (!trend) {
         return <Navigate to="/trends" replace />;
     }
+
+    const Icon = getIcon(trend.id);
 
     const handleGenerateRoadmap = async () => {
         try {
@@ -53,32 +66,24 @@ export default function TrendDetail() {
 
     return (
         <div className="min-h-screen bg-background text-foreground pb-20">
-            {/* Hero Image Background */}
+            {/* Gradient Background */}
             <div className="fixed inset-0 z-0 opacity-20 pointer-events-none">
-                <img
-                    src={trend.image}
-                    alt="Background"
-                    className="w-full h-full object-cover blur-3xl"
-                />
+                <div className={`absolute inset-0 bg-gradient-to-br ${trend.gradient}`} />
                 <div className="absolute inset-0 bg-background/80" />
             </div>
 
-            <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur">
-                <div className="container px-4 h-16 flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => navigate('/trends')} className="shrink-0">
-                        <ArrowLeft className="w-5 h-5" />
-                    </Button>
-                    <div className="flex items-center gap-2">
-                        <h1 className="font-display font-bold text-lg hidden md:block">{trend.title}</h1>
-                    </div>
-                    <div className="ml-auto">
-                        <Button onClick={handleGenerateRoadmap} disabled={loading} className="gap-2">
-                            <Sparkles className="w-4 h-4" />
-                            Generate Roadmap
-                        </Button>
-                    </div>
-                </div>
-            </header>
+            <MainHeader />
+
+            <div className="container px-4 py-4 max-w-4xl mx-auto flex items-center justify-between z-40 relative">
+                <Button variant="ghost" className="gap-2 -ml-4 hover:bg-background/20" onClick={() => navigate('/trends')}>
+                    <ArrowLeft className="w-4 h-4" />
+                    Back to Trends
+                </Button>
+                <Button onClick={handleGenerateRoadmap} disabled={loading} className="gap-2 shadow-lg">
+                    <Sparkles className="w-4 h-4" />
+                    Generate Roadmap
+                </Button>
+            </div>
 
             <main className="container max-w-4xl mx-auto px-4 py-8 relative z-10">
 
@@ -86,9 +91,24 @@ export default function TrendDetail() {
                     <motion.div
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="aspect-square rounded-2xl overflow-hidden shadow-2xl border border-border"
+                        className={`aspect-square rounded-2xl overflow-hidden shadow-2xl border relative bg-gradient-to-br ${trend.gradient}`}
                     >
-                        <img src={trend.image} alt={trend.title} className="w-full h-full object-cover" />
+                        {/* Abstract Pattern */}
+                        <div className="absolute inset-0 opacity-30">
+                            <div className="absolute top-0 right-0 w-40 h-40 bg-white/30 rounded-full blur-3xl transform translate-x-10 -translate-y-10" />
+                            <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/5 rounded-full blur-2xl transform -translate-x-5 translate-y-5" />
+                        </div>
+                        {/* Grid Pattern */}
+                        <div className="absolute inset-0 opacity-10" style={{
+                            backgroundImage: 'linear-gradient(rgba(0,0,0,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.05) 1px, transparent 1px)',
+                            backgroundSize: '30px 30px'
+                        }} />
+                        {/* Icon */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <div className={`w-32 h-32 rounded-3xl ${trend.iconBg} shadow-xl flex items-center justify-center`}>
+                                <Icon className="w-16 h-16 text-white" />
+                            </div>
+                        </div>
                     </motion.div>
 
                     <motion.div

@@ -22,6 +22,8 @@ import GeneralAssessment from '@/components/GeneralAssessment';
 import ProgressDashboard from '@/components/ProgressDashboard';
 import DashboardNavLink from '@/components/DashboardNavLink';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import MainHeader from '@/components/MainHeader';
+import { useSearchParams } from 'react-router-dom';
 
 interface Profile {
   id: string;
@@ -46,11 +48,21 @@ type DashboardView = 'home' | 'roadmap';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<DashboardView>('home');
+  const [currentView, setCurrentView] = useState<DashboardView>(
+    (searchParams.get('view') as DashboardView) || 'home'
+  );
+
+  useEffect(() => {
+    const view = searchParams.get('view') as DashboardView;
+    if (view === 'home' || view === 'roadmap') {
+      setCurrentView(view);
+    }
+  }, [searchParams]);
 
   // Derived State
   // Derived State
@@ -138,58 +150,10 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
-      <header className="border-b border-border bg-card/50 backdrop-blur-xl sticky top-0 z-50 transition-colors duration-300">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <CheckSquare className="w-6 h-6 text-primary" />
-              <span className="font-display font-bold text-xl">DoThenDecide</span>
-            </div>
-
-            {/* Navigation - only show when roadmap exists */}
-            {showFullDashboard && (
-              <nav className="hidden md:flex items-center gap-1">
-                <DashboardNavLink
-                  icon={Home}
-                  label="Home"
-                  active={currentView === 'home'}
-                  onClick={() => setCurrentView('home')}
-                />
-                <DashboardNavLink
-                  icon={BookOpen}
-                  label="Roadmap"
-                  active={currentView === 'roadmap'}
-                  onClick={() => setCurrentView('roadmap')}
-                />
-                <DashboardNavLink
-                  icon={TrendingUp}
-                  label="Trends"
-                  active={false}
-                  onClick={() => navigate('/trends')}
-                />
-                <DashboardNavLink
-                  icon={MessageSquare}
-                  label="Mentor"
-                  active={false}
-                  onClick={() => navigate('/mentor')}
-                />
-              </nav>
-            )}
-          </div>
-
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            {profile && (
-              <span className="text-sm text-muted-foreground hidden sm:block">
-                {profile.full_name || user?.email}
-              </span>
-            )}
-            <Button variant="ghost" size="icon" onClick={handleLogout}>
-              <LogOut className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-      </header>
+      <MainHeader
+        currentView={currentView}
+        onViewChange={setCurrentView}
+      />
 
       <main className="container mx-auto px-4 py-8">
         <AnimatePresence mode="wait">
