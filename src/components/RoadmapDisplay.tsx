@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Target,
   Clock,
@@ -16,6 +16,12 @@ import {
   BookOpen,
   RotateCcw,
   Lock,
+  Trophy,
+  Flame,
+  Star,
+  Sparkles,
+  Play,
+  ArrowRight,
 } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import RoadmapExportShare from './RoadmapExportShare';
@@ -72,6 +78,30 @@ const getTopicColor = (name: string, index: number) => {
   if (lower.includes('database') || lower.includes('advanced') || lower.includes('mastery') || lower.includes('infrastructure')) return 'phase-advanced';
   const colors = ['phase-beginner', 'phase-intermediate', 'phase-advanced', 'phase-market'];
   return colors[index % colors.length];
+};
+
+const getTopicGradient = (name: string, index: number) => {
+  const lower = name.toLowerCase();
+  if (lower.includes('frontend') || lower.includes('foundation') || lower.includes('basic') || lower.includes('beginner'))
+    return 'from-blue-500/20 to-cyan-500/20';
+  if (lower.includes('backend') || lower.includes('core') || lower.includes('intermediate'))
+    return 'from-violet-500/20 to-purple-500/20';
+  if (lower.includes('database') || lower.includes('advanced') || lower.includes('mastery') || lower.includes('infrastructure'))
+    return 'from-amber-500/20 to-orange-500/20';
+  const gradients = ['from-blue-500/20 to-cyan-500/20', 'from-violet-500/20 to-purple-500/20', 'from-amber-500/20 to-orange-500/20', 'from-emerald-500/20 to-green-500/20'];
+  return gradients[index % gradients.length];
+};
+
+const getTopicAccent = (name: string, index: number) => {
+  const lower = name.toLowerCase();
+  if (lower.includes('frontend') || lower.includes('foundation') || lower.includes('basic') || lower.includes('beginner'))
+    return 'text-blue-500 bg-blue-500/10 border-blue-500/30';
+  if (lower.includes('backend') || lower.includes('core') || lower.includes('intermediate'))
+    return 'text-violet-500 bg-violet-500/10 border-violet-500/30';
+  if (lower.includes('database') || lower.includes('advanced') || lower.includes('mastery') || lower.includes('infrastructure'))
+    return 'text-amber-500 bg-amber-500/10 border-amber-500/30';
+  const accents = ['text-blue-500 bg-blue-500/10 border-blue-500/30', 'text-violet-500 bg-violet-500/10 border-violet-500/30', 'text-amber-500 bg-amber-500/10 border-amber-500/30', 'text-emerald-500 bg-emerald-500/10 border-emerald-500/30'];
+  return accents[index % accents.length];
 };
 
 const getTopicIcon = (name: string) => {
@@ -246,53 +276,163 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
     return '';
   };
 
+  // Find the next skill to work on
+  const findNextSkill = () => {
+    for (let pi = 0; pi < roadmap.roadmap_data.phases.length; pi++) {
+      const phase = roadmap.roadmap_data.phases[pi];
+      for (let si = 0; si < phase.skills.length; si++) {
+        const skill = phase.skills[si];
+        if (!isSkillCompleted(skill.name, phase.name) && !isSkillLocked(pi, si)) {
+          return { skill, phase: phase.name, phaseIndex: pi, skillIndex: si };
+        }
+      }
+    }
+    return null;
+  };
+
+  const nextSkill = findNextSkill();
+  const completedCount = progress.filter(p => p.completed).length;
+  const totalSkills = progress.length;
+
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
+    <div className="max-w-5xl mx-auto">
+      {/* Hero Header */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
+        className="relative mb-10"
       >
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary mb-4">
-          <Target className="w-4 h-4" />
-          <span className="font-medium">Your Syllabus</span>
-        </div>
-        <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
-          {roadmap.target_skill}
-        </h1>
-        <p className="text-muted-foreground mb-6">
-          Click on any topic to view resources and take the quiz
-        </p>
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 rounded-3xl blur-xl" />
+        <div className="relative glass-card p-8 rounded-3xl border-primary/20">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary">
+                <Target className="w-4 h-4" />
+                <span className="font-medium text-sm">Your Learning Journey</span>
+              </div>
+              <h1 className="font-display text-3xl md:text-4xl font-bold">
+                {roadmap.target_skill}
+              </h1>
+              <p className="text-muted-foreground max-w-md">
+                Master each skill step by step. Click on any topic to access resources and take quizzes.
+              </p>
+            </div>
 
-        {/* Export & Share */}
-        <div className="flex justify-center">
-          <RoadmapExportShare
-            roadmapId={roadmap.id}
-            targetSkill={roadmap.target_skill}
-            roadmapData={roadmap.roadmap_data}
-          />
+            {/* Quick Stats */}
+            <div className="flex gap-4">
+              <div className="glass-card p-4 rounded-xl text-center min-w-[100px]">
+                <div className="flex items-center justify-center mb-2">
+                  <Trophy className="w-5 h-5 text-amber-500" />
+                </div>
+                <p className="text-2xl font-bold">{completedCount}</p>
+                <p className="text-xs text-muted-foreground">Completed</p>
+              </div>
+              <div className="glass-card p-4 rounded-xl text-center min-w-[100px]">
+                <div className="flex items-center justify-center mb-2">
+                  <Star className="w-5 h-5 text-primary" />
+                </div>
+                <p className="text-2xl font-bold">{totalSkills - completedCount}</p>
+                <p className="text-xs text-muted-foreground">Remaining</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Export & Share */}
+          <div className="mt-6 pt-6 border-t border-border/50 flex flex-wrap items-center gap-4">
+            <RoadmapExportShare
+              roadmapId={roadmap.id}
+              targetSkill={roadmap.target_skill}
+              roadmapData={roadmap.roadmap_data}
+            />
+          </div>
         </div>
       </motion.div>
 
-      {/* Overall Progress */}
+      {/* Progress Overview */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="glass-card p-6 mb-8"
+        className="grid md:grid-cols-2 gap-6 mb-10"
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-semibold text-lg">Detailed Progress</h2>
-          <span className="text-2xl font-bold gradient-text">{getTotalProgress()}%</span>
+        {/* Overall Progress Card */}
+        <div className="glass-card p-6 rounded-2xl">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Flame className="w-5 h-5 text-primary" />
+              </div>
+              <h2 className="font-display font-semibold text-lg">Overall Progress</h2>
+            </div>
+            <span className="text-3xl font-bold gradient-text">{getTotalProgress()}%</span>
+          </div>
+          <Progress value={getTotalProgress()} className="h-3 mb-3" />
+          <p className="text-sm text-muted-foreground">
+            {completedCount} of {totalSkills} skills completed
+          </p>
         </div>
-        <Progress value={getTotalProgress()} className="h-3" />
-        <p className="text-sm text-muted-foreground mt-2">
-          {progress.filter(p => p.completed).length} of {progress.length} subtopics completed
-        </p>
+
+        {/* Next Up Card */}
+        {nextSkill && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="glass-card p-6 rounded-2xl border-primary/30 bg-gradient-to-br from-primary/5 to-transparent cursor-pointer hover:border-primary/50 transition-all group"
+            onClick={() => handleSkillClick(nextSkill.skill, nextSkill.phase, nextSkill.phaseIndex, nextSkill.skillIndex)}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Play className="w-5 h-5 text-primary" />
+              </div>
+              <h2 className="font-display font-semibold text-lg">Continue Learning</h2>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-lg">{nextSkill.skill.name}</p>
+                <p className="text-sm text-muted-foreground">{nextSkill.phase}</p>
+              </div>
+              <Button size="sm" className="gap-2 group-hover:gap-3 transition-all">
+                Start
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </motion.div>
+        )}
+
+        {!nextSkill && getTotalProgress() === 100 && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.2 }}
+            className="glass-card p-6 rounded-2xl border-success/30 bg-gradient-to-br from-success/10 to-transparent"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className="p-2 rounded-lg bg-success/10">
+                <Trophy className="w-5 h-5 text-success" />
+              </div>
+              <h2 className="font-display font-semibold text-lg text-success">Roadmap Completed!</h2>
+            </div>
+            <p className="text-muted-foreground">
+              Congratulations! You've completed all skills in this roadmap. 🎉
+            </p>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Phases / Modules */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="mb-6"
+      >
+        <h2 className="font-display text-xl font-semibold mb-4 flex items-center gap-2">
+          <Sparkles className="w-5 h-5 text-primary" />
+          Learning Modules
+        </h2>
+      </motion.div>
+
       <div className="space-y-4" id="roadmap-content">
         {roadmap.roadmap_data.phases.map((phase, phaseIndex) => {
           let displayName = phase.name;
@@ -310,7 +450,10 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
           const phaseProgress = getPhaseProgress(phase.name);
           const isExpanded = expandedPhases.includes(phase.name);
           const styleClass = getTopicColor(displayName, phaseIndex);
+          const gradientClass = getTopicGradient(displayName, phaseIndex);
+          const accentClass = getTopicAccent(displayName, phaseIndex);
           const icon = getTopicIcon(displayName);
+          const isPhaseComplete = phaseProgress === 100;
 
           return (
             <motion.div
@@ -318,22 +461,32 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 + phaseIndex * 0.1 }}
-              className={`glass-card overflow-hidden border-l-4 ${styleClass.replace('phase', 'border')}`}
-              style={{ borderLeftColor: `var(--${styleClass})` }}
+              className={`rounded-2xl overflow-hidden border transition-all duration-300 ${isPhaseComplete
+                  ? 'border-success/30 bg-success/5'
+                  : 'border-border/50 hover:border-border'
+                }`}
             >
               {/* Module Header */}
               <button
                 onClick={() => togglePhase(phase.name)}
-                className="w-full p-6 flex items-center justify-between hover:bg-secondary/20 transition-colors"
+                className={`w-full p-6 flex items-center justify-between transition-colors bg-gradient-to-r ${gradientClass}`}
               >
                 <div className="flex items-center gap-4">
-                  <span className="text-2xl p-2 bg-secondary rounded-lg text-foreground flex items-center justify-center">
+                  <div className={`p-3 rounded-xl border ${accentClass}`}>
                     {icon}
-                  </span>
+                  </div>
                   <div className="text-left">
-                    <h3 className="font-display font-semibold text-lg">{displayName}</h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-display font-semibold text-lg">{displayName}</h3>
+                      {isPhaseComplete && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-success/10 text-success text-xs font-medium rounded-full">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Complete
+                        </span>
+                      )}
+                    </div>
                     <p className="text-sm text-muted-foreground">
-                      {phase.skills.length} subtopics • {phaseProgress}% complete
+                      {phase.skills.length} skills • {phaseProgress}% complete
                     </p>
                   </div>
                 </div>
@@ -341,88 +494,120 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
                   <div className="w-32 hidden sm:block">
                     <Progress value={phaseProgress} className="h-2" />
                   </div>
-                  {isExpanded ? (
-                    <ChevronUp className="w-5 h-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-muted-foreground" />
-                  )}
+                  <div className={`p-2 rounded-lg transition-colors ${isExpanded ? 'bg-primary/10' : 'bg-secondary/50'}`}>
+                    {isExpanded ? (
+                      <ChevronUp className="w-5 h-5 text-primary" />
+                    ) : (
+                      <ChevronDown className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
                 </div>
               </button>
 
               {/* Skills List */}
-              {isExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="border-t border-border"
-                >
-                  <div className="p-4 space-y-3">
-                    {phase.skills.map((skill, skillIndex) => {
-                      const isCompleted = isSkillCompleted(skill.name, phase.name);
-                      const isLocked = isSkillLocked(phaseIndex, skillIndex);
-                      const timeDisplay = skill.days || skill.estimatedTime;
-                      const hasQuiz = skill.quiz && skill.quiz.length > 0;
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="border-t border-border/50"
+                  >
+                    <div className="p-4 space-y-3">
+                      {phase.skills.map((skill, skillIndex) => {
+                        const isCompleted = isSkillCompleted(skill.name, phase.name);
+                        const isLocked = isSkillLocked(phaseIndex, skillIndex);
+                        const timeDisplay = skill.days || skill.estimatedTime;
+                        const hasQuiz = skill.quiz && skill.quiz.length > 0;
+                        const isNextSkill = nextSkill?.skill.name === skill.name && nextSkill?.phase === phase.name;
 
-                      let displaySkillName = skill.name;
-                      if (skill.name.includes("HTML5")) displaySkillName = "HTML";
-                      if (skill.name.includes("CSS3")) displaySkillName = "CSS";
+                        let displaySkillName = skill.name;
+                        if (skill.name.includes("HTML5")) displaySkillName = "HTML";
+                        if (skill.name.includes("CSS3")) displaySkillName = "CSS";
 
-                      return (
-                        <motion.div
-                          key={skill.name}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: skillIndex * 0.05 }}
-                          onClick={() => handleSkillClick(skill, phase.name, phaseIndex, skillIndex)}
-                          className={`p-4 rounded-lg border transition-all cursor-pointer ${isCompleted
-                            ? 'bg-success/10 border-success/30'
-                            : isLocked
-                              ? 'bg-secondary/20 border-border/50 opacity-60'
-                              : 'bg-secondary/30 border-border hover:border-primary/30 hover:bg-secondary/50'
-                            }`}
-                        >
-                          <div className="flex items-start gap-4">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2 mb-1">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="font-medium">
-                                    {skillIndex + 1}. {displaySkillName}
-                                  </h4>
-                                  {isCompleted && (
-                                    <CheckCircle2 className="w-4 h-4 text-success" />
-                                  )}
-                                  {isLocked && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-secondary text-muted-foreground text-xs rounded-full">
-                                      <Lock className="w-3 h-3" />
-                                      Locked
-                                    </span>
-                                  )}
-                                  {!isCompleted && !isLocked && hasQuiz && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
-                                      Quiz
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
-                                  <Clock className="w-4 h-4" />
-                                  {timeDisplay}
-                                </div>
+                        return (
+                          <motion.div
+                            key={skill.name}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: skillIndex * 0.05 }}
+                            onClick={() => handleSkillClick(skill, phase.name, phaseIndex, skillIndex)}
+                            className={`p-4 rounded-xl border transition-all cursor-pointer group ${isCompleted
+                                ? 'bg-success/5 border-success/30 hover:bg-success/10'
+                                : isLocked
+                                  ? 'bg-secondary/10 border-border/30 opacity-60'
+                                  : isNextSkill
+                                    ? 'bg-primary/5 border-primary/30 ring-2 ring-primary/20 hover:bg-primary/10'
+                                    : 'bg-card/50 border-border/50 hover:border-primary/30 hover:bg-card'
+                              }`}
+                          >
+                            <div className="flex items-start gap-4">
+                              {/* Skill Number / Status */}
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-semibold text-sm ${isCompleted
+                                  ? 'bg-success text-white'
+                                  : isLocked
+                                    ? 'bg-secondary text-muted-foreground'
+                                    : isNextSkill
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'bg-secondary text-foreground'
+                                }`}>
+                                {isCompleted ? (
+                                  <CheckCircle2 className="w-5 h-5" />
+                                ) : isLocked ? (
+                                  <Lock className="w-4 h-4" />
+                                ) : (
+                                  skillIndex + 1
+                                )}
                               </div>
-                              <p className="text-sm text-muted-foreground line-clamp-2">
-                                {skill.description}
-                              </p>
-                              <p className="text-xs text-primary mt-2">
-                                {isLocked ? 'Complete previous skill to unlock' : 'Click to view resources & take quiz →'}
-                              </p>
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-1">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <h4 className={`font-medium ${isCompleted ? 'text-success' : ''}`}>
+                                      {displaySkillName}
+                                    </h4>
+                                    {isNextSkill && !isCompleted && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary text-primary-foreground text-xs font-medium rounded-full">
+                                        <Play className="w-3 h-3" />
+                                        Up Next
+                                      </span>
+                                    )}
+                                    {!isCompleted && !isLocked && hasQuiz && !isNextSkill && (
+                                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">
+                                        Quiz
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-1 text-sm text-muted-foreground flex-shrink-0">
+                                    <Clock className="w-4 h-4" />
+                                    {timeDisplay}
+                                  </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                                  {skill.description}
+                                </p>
+                                <p className={`text-xs font-medium ${isCompleted
+                                    ? 'text-success'
+                                    : isLocked
+                                      ? 'text-muted-foreground'
+                                      : 'text-primary group-hover:underline'
+                                  }`}>
+                                  {isCompleted
+                                    ? '✓ Completed'
+                                    : isLocked
+                                      ? 'Complete previous skill to unlock'
+                                      : 'Click to view resources & take quiz →'}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                </motion.div>
-              )}
+                          </motion.div>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
           );
         })}
@@ -433,7 +618,7 @@ export default function RoadmapDisplay({ roadmap, userId, onNewRoadmap }: Roadma
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.5 }}
-        className="mt-8 flex justify-center"
+        className="mt-10 flex justify-center"
       >
         <Button
           variant="outline"
