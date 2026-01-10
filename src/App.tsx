@@ -13,6 +13,7 @@ import WeakPointsHub from "./pages/WeakPointsHub";
 import TrendsHub from "./pages/TrendsHub";
 import TrendDetail from "./pages/TrendDetail";
 import MentorHub from "./pages/MentorHub";
+import ModuleDetail from "./pages/ModuleDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/roadmap/:id" element={<SharedRoadmap />} />
+          <Route path="/roadmap/:roadmapId/module/:moduleId" element={<ModuleDetail />} />
           <Route path="/roadmap/:roadmapId/phase/:phaseName/skill/:skillName" element={<SkillDetail />} />
           <Route path="/trends" element={<TrendsHub />} />
           <Route path="/trends/:trendId" element={<TrendDetail />} />
